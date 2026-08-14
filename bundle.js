@@ -7313,9 +7313,9 @@
     \uCD9C\uC0B0\uD734\uAC00: { color: COLORS.info, bg: COLORS.infoBg, icon: "\u25D0" }
   };
   var ABSENCE_ORDER = ["\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"];
-  var DEPARTMENTS = ["IQC", "PQC", "OQC", "RMA"];
+  var DEPARTMENTS = ["IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
   var DEPT_ORDER = ["\uBD80\uC11C\uC7A5", ...DEPARTMENTS];
-  var POSITIONS = ["Worker", "Staff", "Supervisor 1", "Supervisor 2", "Manager", "Upper Manager"];
+  var POSITIONS = ["Inspector", "Staff", "Supervisor 1", "Supervisor 2", "Manager", "Upper Manager"];
   var deptRank = (team) => {
     const idx = DEPT_ORDER.indexOf(team);
     return idx === -1 ? DEPT_ORDER.length : idx;
@@ -7357,21 +7357,24 @@
           members: [
             { empNo: "Q1011", name: "\uAE40\uCCA0\uC218", position: "Upper Manager", status: "\uCD9C\uADFC" },
             { empNo: "Q1012", name: "\uAE40\uBBFC\uC218", position: "Supervisor 1", status: "\uBCD1\uAC00", note: "\uAC10\uAE30\uBAB8\uC0B4" },
-            { empNo: "Q1013", name: "\uC624\uC138\uD6C8", position: "Worker", status: "\uCD9C\uADFC" }
+            { empNo: "Q1013", name: "\uC624\uC138\uD6C8", position: "Inspector", status: "\uCD9C\uADFC" }
           ]
         },
         {
-          title: "PQC",
+          title: "PQC UNIT",
           members: [
-            { empNo: "Q1021", name: "\uC774\uC218\uC815", position: "Manager", status: "\uCD9C\uC0B0\uD734\uAC00", returnDate: "2026-11-02" },
-            { empNo: "Q1022", name: "\uC815\uB2E4\uC740", position: "Worker", status: "\uCD9C\uADFC" }
+            { empNo: "Q1021", name: "\uC774\uC218\uC815", position: "Manager", status: "\uCD9C\uC0B0\uD734\uAC00", returnDate: "2026-11-02" }
           ]
+        },
+        {
+          title: "PQC ASSY",
+          members: [{ empNo: "Q1022", name: "\uC815\uB2E4\uC740", position: "Inspector", status: "\uCD9C\uADFC" }]
         },
         {
           title: "OQC",
           members: [
             { empNo: "Q1031", name: "\uBC15\uC900\uD638", position: "Supervisor 2", status: "\uACB0\uADFC" },
-            { empNo: "Q1032", name: "\uCD5C\uC720\uC9C4", position: "Worker", status: "\uCD9C\uADFC" }
+            { empNo: "Q1032", name: "\uCD5C\uC720\uC9C4", position: "Inspector", status: "\uCD9C\uADFC" }
           ]
         },
         {
@@ -7391,21 +7394,22 @@
           title: "IQC",
           members: [
             { empNo: "Q2011", name: "\uBC30\uBBFC\uC7AC", position: "Upper Manager", status: "\uCD9C\uADFC" },
-            { empNo: "Q2012", name: "\uC1A1\uC9C0\uD638", position: "Worker", status: "\uCD9C\uADFC" }
+            { empNo: "Q2012", name: "\uC1A1\uC9C0\uD638", position: "Inspector", status: "\uCD9C\uADFC" }
           ]
         },
         {
-          title: "PQC",
-          members: [
-            { empNo: "Q2021", name: "\uC784\uD558\uB298", position: "Manager", status: "\uBCD1\uAC00", note: "\uBCD1\uC6D0 \uC9C4\uB8CC" },
-            { empNo: "Q2022", name: "\uAC15\uC11C\uC900", position: "Worker", status: "\uCD9C\uADFC" }
-          ]
+          title: "PQC UNIT",
+          members: [{ empNo: "Q2021", name: "\uC784\uD558\uB298", position: "Manager", status: "\uBCD1\uAC00", note: "\uBCD1\uC6D0 \uC9C4\uB8CC" }]
+        },
+        {
+          title: "PQC ASSY",
+          members: [{ empNo: "Q2022", name: "\uAC15\uC11C\uC900", position: "Inspector", status: "\uCD9C\uADFC" }]
         },
         {
           title: "OQC",
           members: [
             { empNo: "Q2031", name: "\uB178\uC720\uBE48", position: "Supervisor 2", status: "\uCD9C\uADFC" },
-            { empNo: "Q2032", name: "\uAD8C\uB098\uB77C", position: "Worker", status: "\uCD9C\uC0B0\uD734\uAC00", returnDate: "2026-09-20" }
+            { empNo: "Q2032", name: "\uAD8C\uB098\uB77C", position: "Inspector", status: "\uCD9C\uC0B0\uD734\uAC00", returnDate: "2026-09-20" }
           ]
         },
         {
@@ -7568,18 +7572,25 @@
     );
   }
   var POSITION_TIER = {
-    Worker: "Worker",
-    Staff: "Worker",
+    Inspector: "Inspector",
+    Staff: "Inspector",
     "Supervisor 1": "Supervisor",
     "Supervisor 2": "Supervisor",
     Manager: "Manager",
     "Upper Manager": "Manager"
   };
-  var TIER_ORDER = ["Manager", "Supervisor", "Worker"];
+  var TIER_ORDER = ["Manager", "Supervisor", "Inspector"];
   var tierRank = (tier) => {
     const idx = TIER_ORDER.indexOf(tier);
     return idx === -1 ? TIER_ORDER.length : idx;
   };
+  var TIER_COLORS = {
+    \uBD80\uC11C\uC7A5: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
+    Manager: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
+    Supervisor: { color: "#C2790C", bg: "#FDF0DC", border: "#F3D9A8" },
+    Inspector: { color: "#2668B2", bg: "#E6F0FB", border: "#BBD8F4" }
+  };
+  var tierColorsOf = (tier) => TIER_COLORS[tier] || TIER_COLORS.Inspector;
   function groupByTier(members) {
     const groups = /* @__PURE__ */ new Map();
     members.forEach((m) => {
@@ -7610,7 +7621,7 @@
     const [addingMember, setAddingMember] = (0, import_react.useState)(false);
     const [editingMemberId, setEditingMemberId] = (0, import_react.useState)(null);
     const grouped = groupByTier(team.members);
-    const renderMemberRow = (m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    const renderMemberRow = (m, tc) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
       "div",
       {
         style: {
@@ -7619,8 +7630,11 @@
           gap: 8,
           padding: "6px 8px",
           borderRadius: 6,
-          background: "#F4F4F0",
-          borderLeft: `3px solid ${COLORS.teal}`
+          background: COLORS.card,
+          borderTop: `0.5px solid ${COLORS.border}`,
+          borderRight: `0.5px solid ${COLORS.border}`,
+          borderBottom: `0.5px solid ${COLORS.border}`,
+          borderLeft: `3px solid ${tc.color}`
         },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
@@ -7748,40 +7762,47 @@
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", gap: 8 }, children: [
-                  grouped.map(([tier, members]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "div",
-                    {
-                      style: {
-                        border: `0.5px solid ${COLORS.border}`,
-                        borderRadius: 8,
-                        padding: 6,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                        background: "#FBFBF9"
-                      },
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
-                        members.map(
-                          (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                            MemberForm,
-                            {
-                              initial: m,
-                              onCancel: () => setEditingMemberId(null),
-                              onSave: (data) => {
-                                onEditMember(m.id, data);
-                                setEditingMemberId(null);
-                              }
-                            },
-                            m.id
-                          ) : renderMemberRow(m)
-                        )
-                      ]
-                    },
-                    tier
-                  )),
-                  addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }, children: [
+                  grouped.map(([tier, members], idx) => {
+                    const tc = tierColorsOf(tier);
+                    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: idx === 0 ? 8 : 10, background: COLORS.borderStrong } }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "div",
+                        {
+                          style: {
+                            width: "100%",
+                            boxSizing: "border-box",
+                            border: `0.5px solid ${tc.border}`,
+                            borderRadius: 8,
+                            padding: 6,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                            background: tc.bg
+                          },
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: "#000000", letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
+                            members.map(
+                              (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                MemberForm,
+                                {
+                                  initial: m,
+                                  onCancel: () => setEditingMemberId(null),
+                                  onSave: (data) => {
+                                    onEditMember(m.id, data);
+                                    setEditingMemberId(null);
+                                  }
+                                },
+                                m.id
+                              ) : renderMemberRow(m, tc)
+                            )
+                          ]
+                        }
+                      )
+                    ] }, tier);
+                  }),
+                  addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", marginTop: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     MemberForm,
                     {
                       onCancel: () => setAddingMember(false),
@@ -7790,7 +7811,7 @@
                         setAddingMember(false);
                       }
                     }
-                  ) : isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  ) }) : isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                     "button",
                     {
                       onClick: () => setAddingMember(true),
@@ -7803,7 +7824,8 @@
                         color: COLORS.textSecondary,
                         cursor: "pointer",
                         width: "100%",
-                        boxSizing: "border-box"
+                        boxSizing: "border-box",
+                        marginTop: 8
                       },
                       children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
@@ -7860,9 +7882,10 @@
       });
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }, children: [
-        data.heads.map(
-          (h, idx) => editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [
+        data.heads.map((h, idx) => {
+          const tc = tierColorsOf("\uBD80\uC11C\uC7A5");
+          return editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%", marginTop: idx === 0 ? 0 : 10 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             MemberForm,
             {
               initial: h,
@@ -7873,88 +7896,92 @@
                 setEditingHeadId(null);
               }
             }
-          ) }, h.id) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "div",
-              {
-                draggable: true,
-                onDragStart: () => setHeadDragIndex(idx),
-                onDragOver: (e) => {
-                  e.preventDefault();
-                  if (headOverIndex !== idx) setHeadOverIndex(idx);
-                },
-                onDragLeave: () => setHeadOverIndex((cur) => cur === idx ? null : cur),
-                onDrop: (e) => {
-                  e.preventDefault();
-                  moveHead(headDragIndex, idx);
-                  setHeadDragIndex(null);
-                  setHeadOverIndex(null);
-                },
-                onDragEnd: () => {
-                  setHeadDragIndex(null);
-                  setHeadOverIndex(null);
-                },
-                onClick: isEditing ? () => setEditingHeadId(h.id) : void 0,
-                title: isEditing ? "\uD074\uB9AD\uD558\uC5EC \uC218\uC815 \xB7 \uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD" : "\uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD",
-                style: {
-                  background: COLORS.headDark,
-                  color: "#fff",
-                  borderRadius: 999,
-                  padding: "10px 22px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: isEditing ? "pointer" : "grab",
-                  minWidth: 180,
-                  boxSizing: "border-box",
-                  border: `1.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : "transparent"}`,
-                  opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 14, fontWeight: 500 }, children: h.name }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, opacity: 0.8 }, children: [
-                      h.position,
-                      " \xB7 ",
-                      h.empNo
+          ) }, h.id) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [
+            idx > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 10, background: COLORS.borderStrong } }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", width: 260, maxWidth: "100%" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  draggable: true,
+                  onDragStart: () => setHeadDragIndex(idx),
+                  onDragOver: (e) => {
+                    e.preventDefault();
+                    if (headOverIndex !== idx) setHeadOverIndex(idx);
+                  },
+                  onDragLeave: () => setHeadOverIndex((cur) => cur === idx ? null : cur),
+                  onDrop: (e) => {
+                    e.preventDefault();
+                    moveHead(headDragIndex, idx);
+                    setHeadDragIndex(null);
+                    setHeadOverIndex(null);
+                  },
+                  onDragEnd: () => {
+                    setHeadDragIndex(null);
+                    setHeadOverIndex(null);
+                  },
+                  onClick: isEditing ? () => setEditingHeadId(h.id) : void 0,
+                  title: isEditing ? "\uD074\uB9AD\uD558\uC5EC \uC218\uC815 \xB7 \uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD" : "\uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD",
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    background: tc.bg,
+                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
+                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
+                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
+                    borderLeft: `3px solid ${tc.color}`,
+                    boxSizing: "border-box",
+                    cursor: isEditing ? "pointer" : "grab",
+                    opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.5, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: [
+                        h.empNo,
+                        " \xB7 ",
+                        h.position
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: h.name })
                     ] })
-                  ] })
-                ]
-              }
-            ),
-            isEditing && data.heads.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "button",
-              {
-                onClick: () => {
-                  if (confirm(`"${h.name}" \uBD80\uC11C\uC7A5\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`)) {
-                    updateHeads((heads) => heads.filter((x) => x.id !== h.id));
-                  }
-                },
-                title: "\uBD80\uC11C\uC7A5 \uC0AD\uC81C",
-                style: {
-                  position: "absolute",
-                  top: -6,
-                  right: -6,
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  border: `0.5px solid ${COLORS.border}`,
-                  background: COLORS.card,
-                  color: COLORS.danger,
-                  fontSize: 10,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                },
-                children: "\u2715"
-              }
-            )
-          ] }, h.id)
-        ),
-        isEditing && (addingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  ]
+                }
+              ),
+              isEditing && data.heads.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  onClick: () => {
+                    if (confirm(`"${h.name}" \uBD80\uC11C\uC7A5\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`)) {
+                      updateHeads((heads) => heads.filter((x) => x.id !== h.id));
+                    }
+                  },
+                  title: "\uBD80\uC11C\uC7A5 \uC0AD\uC81C",
+                  style: {
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    border: `0.5px solid ${COLORS.border}`,
+                    background: COLORS.card,
+                    color: COLORS.danger,
+                    fontSize: 10,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  },
+                  children: "\u2715"
+                }
+              )
+            ] })
+          ] }, h.id);
+        }),
+        isEditing && (addingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%", marginTop: data.heads.length > 0 ? 10 : 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           MemberForm,
           {
             isHead: true,
@@ -7964,26 +7991,29 @@
               setAddingHead(false);
             }
           }
-        ) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-          "button",
-          {
-            onClick: () => setAddingHead(true),
-            style: {
-              padding: "8px 18px",
-              borderRadius: 999,
-              border: `1px dashed ${COLORS.borderStrong}`,
-              background: "transparent",
-              color: COLORS.textSecondary,
-              fontSize: 13,
-              cursor: "pointer",
-              minWidth: 140
-            },
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
-              "\uBD80\uC11C\uC7A5 \uCD94\uAC00"
-            ]
-          }
-        ))
+        ) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          data.heads.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 10, background: COLORS.borderStrong } }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              onClick: () => setAddingHead(true),
+              style: {
+                padding: "8px 18px",
+                borderRadius: 999,
+                border: `1px dashed ${COLORS.borderStrong}`,
+                background: "transparent",
+                color: COLORS.textSecondary,
+                fontSize: 13,
+                cursor: "pointer",
+                minWidth: 140
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
+                "\uBD80\uC11C\uC7A5 \uCD94\uAC00"
+              ]
+            }
+          )
+        ] }))
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 18, background: COLORS.borderStrong } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page } }),
@@ -8200,7 +8230,7 @@
           ] }, s);
         }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 18px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 15, fontWeight: 500, marginBottom: 12 }, children: "\uC624\uB298 \uD2B9\uC774\uC0AC\uD56D" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 15, fontWeight: 500, marginBottom: 12 }, children: "\uC138\uBD80 \uD604\uD669" }),
           notices.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, color: COLORS.textMuted }, children: "\uC624\uB298\uC740 \uC804\uC6D0 \uC815\uC0C1 \uCD9C\uADFC\uD588\uC2B5\uB2C8\uB2E4." }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: notices.map((e) => {
             const meta = STATUS_META[e.status];
             let detail = `${e.factory}\uACF5\uC7A5 \xB7 ${e.team}`;
