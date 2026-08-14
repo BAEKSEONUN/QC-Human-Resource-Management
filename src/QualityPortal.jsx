@@ -44,8 +44,9 @@ const ABSENCE_ORDER = ["결근", "병가", "출산휴가"];
 
 // ---------- 부서 / 직급 기준 ----------
 // 품질부서 산하 팀 (정렬 시 이 순서를 기준으로 그룹핑됨). PQC는 UNIT/ASSY로 분리.
-// "총괄"은 부서장 직속 총괄 매니저용 카드로, 다른 부서 카드와 동일한 형식을 사용한다.
-const DEPARTMENTS = ["총괄", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
+// "현지총괄관리자"는 부서장 직속 현지 총괄 관리자용 카드로, 다른 부서 카드와
+// 동일한 형식을 사용한다 (이름은 조직도에서 자유롭게 수정 가능).
+const DEPARTMENTS = ["현지총괄관리자", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
 // 부서장은 팀 소속이 아니므로 정렬상 최상단에 별도로 둔다
 const DEPT_ORDER = ["부서장", ...DEPARTMENTS];
 
@@ -135,7 +136,7 @@ const DICT = {
   colStatus: { ko: "오늘 상태", vi: "Trạng thái hôm nay" },
   noteAbsent: { ko: "무단결근", vi: "Vắng không phép" },
   headTeamLabel: { ko: "부서장", vi: "Trưởng phòng" },
-  teamOverall: { ko: "총괄", vi: "Tổng hợp" },
+  teamOverall: { ko: "현지총괄관리자", vi: "Tổng quản lý tại chỗ" },
   uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
   uploadModalTitle: { ko: "엑셀로 명단 업로드", vi: "Tải danh sách từ Excel" },
   uploadTargetFactory: {
@@ -145,8 +146,8 @@ const DICT = {
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)인 경우 조직도에는 Inspector로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Chức vụ là IQC/PQC/OQC/OQC(SPL) sẽ được đăng ký là Inspector. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ được dùng để tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
+    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)/RMA인 경우 조직도에는 Inspector로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA). Chức vụ là IQC/PQC/OQC/OQC(SPL)/RMA sẽ được đăng ký là Inspector. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ được dùng để tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -189,10 +190,10 @@ function t(lang, key, ...args) {
   return typeof v === "function" ? v(...args) : v;
 }
 
-// "총괄" 같은 기본 제공 팀 이름만 번역해서 보여준다. 사용자가 직접 입력한
-// 팀 이름(자유 텍스트)은 자동 번역할 수 없으므로 그대로 표시한다.
+// "현지총괄관리자" 같은 기본 제공 팀 이름만 번역해서 보여준다. 사용자가
+// 직접 입력한 팀 이름(자유 텍스트)은 자동 번역할 수 없으므로 그대로 표시한다.
 function trTeamTitle(title, lang) {
-  if (lang === "vi" && title === "총괄") return t(lang, "teamOverall");
+  if (lang === "vi" && title === "현지총괄관리자") return t(lang, "teamOverall");
   return title;
 }
 
@@ -222,7 +223,7 @@ const initialOrg = {
     1,
     [{ empNo: "Q1001", name: "홍성훈", position: "품질부서장" }],
     [
-      { title: "총괄", members: [] },
+      { title: "현지총괄관리자", members: [] },
       {
         title: "IQC",
         members: [
@@ -261,7 +262,7 @@ const initialOrg = {
     2,
     [{ empNo: "Q2001", name: "윤태영", position: "품질부서장" }],
     [
-      { title: "총괄", members: [] },
+      { title: "현지총괄관리자", members: [] },
       {
         title: "IQC",
         members: [
@@ -320,6 +321,20 @@ function collectMaxId(org) {
   return max;
 }
 
+// 예전 버전에서 저장된 데이터의 "총괄" 팀 이름을 새 이름으로 옮겨준다
+// (소속 팀원은 그대로 유지).
+function migrateLegacyTeamNames(org) {
+  let changed = false;
+  const next = {};
+  Object.entries(org).forEach(([factory, data]) => {
+    const teams = (data.teams || []).map((team) =>
+      team.title === "총괄" ? ((changed = true), { ...team, title: "현지총괄관리자" }) : team
+    );
+    next[factory] = changed ? { ...data, teams } : data;
+  });
+  return changed ? next : org;
+}
+
 function loadInitialOrg() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -327,7 +342,7 @@ function loadInitialOrg() {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
     idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-    return parsed;
+    return migrateLegacyTeamNames(parsed);
   } catch {
     return initialOrg;
   }
@@ -1186,9 +1201,9 @@ function detectColumns(headerRow) {
 // 실제 인사 자료의 "부서" 열에는 QC/PQC/OQC(SPL)처럼 조직도 팀 이름과
 // 정확히 일치하지 않는 값이 들어오는 경우가 있어, 아래 별칭들을 실제
 // 팀 이름으로 매핑해 인식한다. PQC(세부 구분 없음)는 PQC UNIT으로,
-// OQC(SPL)은 OQC로, QC(전체를 뜻함)는 총괄로 등록된다.
+// OQC(SPL)은 OQC로, QC(전체를 뜻함)는 현지총괄관리자 팀으로 등록된다.
 const DEPT_VALUE_ALIASES = {
-  총괄: ["총괄", "QC", "tổng hợp", "tonghop", "overall", "general"],
+  현지총괄관리자: ["현지총괄관리자", "현지총괄", "QC", "tổng hợp", "tonghop", "overall", "general"],
   "PQC UNIT": ["PQC"],
   OQC: ["OQC(SPL)", "OQC SPL"],
 };
@@ -1203,10 +1218,10 @@ function normalizeDeptValue(raw) {
 }
 
 // 일부 인사 자료는 검사직 직원의 "직급" 열에 실제 직급 대신 소속 검사
-// 구역(IQC/PQC/OQC/OQC(SPL))을 적어두는 경우가 있다. 이런 값들은 모두
-// 조직도의 최하위 직급인 "Inspector"로 정규화해 등록한다.
+// 구역(IQC/PQC/OQC/OQC(SPL)/RMA)을 적어두는 경우가 있다. 이런 값들은
+// 모두 조직도의 최하위 직급인 "Inspector"로 정규화해 등록한다.
 const POSITION_VALUE_ALIASES = {
-  Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL"],
+  Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL", "RMA"],
 };
 function normalizePositionValue(raw) {
   const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");

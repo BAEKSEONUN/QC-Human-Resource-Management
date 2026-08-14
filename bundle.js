@@ -34117,7 +34117,7 @@
   };
   var trStatus = (status, lang) => STATUS_LABEL[lang] && STATUS_LABEL[lang][status] || status;
   var ABSENCE_ORDER = ["\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"];
-  var DEPARTMENTS = ["\uCD1D\uAD04", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
+  var DEPARTMENTS = ["\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
   var DEPT_ORDER = ["\uBD80\uC11C\uC7A5", ...DEPARTMENTS];
   var POSITIONS = ["Inspector", "Staff", "Supervisor 1", "Supervisor 2", "Manager", "Upper Manager"];
   var deptRank = (team) => {
@@ -34195,7 +34195,7 @@
     colStatus: { ko: "\uC624\uB298 \uC0C1\uD0DC", vi: "Tr\u1EA1ng th\xE1i h\xF4m nay" },
     noteAbsent: { ko: "\uBB34\uB2E8\uACB0\uADFC", vi: "V\u1EAFng kh\xF4ng ph\xE9p" },
     headTeamLabel: { ko: "\uBD80\uC11C\uC7A5", vi: "Tr\u01B0\u1EDFng ph\xF2ng" },
-    teamOverall: { ko: "\uCD1D\uAD04", vi: "T\u1ED5ng h\u1EE3p" },
+    teamOverall: { ko: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", vi: "T\u1ED5ng qu\u1EA3n l\xFD t\u1EA1i ch\u1ED7" },
     uploadExcel: { ko: "\uC5D1\uC140 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i l\xEAn Excel" },
     uploadModalTitle: { ko: "\uC5D1\uC140\uB85C \uBA85\uB2E8 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i danh s\xE1ch t\u1EEB Excel" },
     uploadTargetFactory: {
@@ -34205,8 +34205,8 @@
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL) s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD \u0111\u01B0\u1EE3c d\xF9ng \u0111\u1EC3 t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc."
+      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)/RMA\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL)/RMA s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD \u0111\u01B0\u1EE3c d\xF9ng \u0111\u1EC3 t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -34247,7 +34247,7 @@
     return typeof v === "function" ? v(...args) : v;
   }
   function trTeamTitle(title, lang) {
-    if (lang === "vi" && title === "\uCD1D\uAD04") return t(lang, "teamOverall");
+    if (lang === "vi" && title === "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790") return t(lang, "teamOverall");
     return title;
   }
   function trHeadPosition(position, lang) {
@@ -34270,7 +34270,7 @@
       1,
       [{ empNo: "Q1001", name: "\uD64D\uC131\uD6C8", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" }],
       [
-        { title: "\uCD1D\uAD04", members: [] },
+        { title: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", members: [] },
         {
           title: "IQC",
           members: [
@@ -34309,7 +34309,7 @@
       2,
       [{ empNo: "Q2001", name: "\uC724\uD0DC\uC601", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" }],
       [
-        { title: "\uCD1D\uAD04", members: [] },
+        { title: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", members: [] },
         {
           title: "IQC",
           members: [
@@ -34359,6 +34359,17 @@
     });
     return max;
   }
+  function migrateLegacyTeamNames(org) {
+    let changed = false;
+    const next = {};
+    Object.entries(org).forEach(([factory, data]) => {
+      const teams = (data.teams || []).map(
+        (team) => team.title === "\uCD1D\uAD04" ? (changed = true, { ...team, title: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790" }) : team
+      );
+      next[factory] = changed ? { ...data, teams } : data;
+    });
+    return changed ? next : org;
+  }
   function loadInitialOrg() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -34366,7 +34377,7 @@
       const parsed = JSON.parse(raw);
       if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
       idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-      return parsed;
+      return migrateLegacyTeamNames(parsed);
     } catch {
       return initialOrg;
     }
@@ -35143,7 +35154,7 @@
     return map;
   }
   var DEPT_VALUE_ALIASES = {
-    \uCD1D\uAD04: ["\uCD1D\uAD04", "QC", "t\u1ED5ng h\u1EE3p", "tonghop", "overall", "general"],
+    \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790: ["\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", "\uD604\uC9C0\uCD1D\uAD04", "QC", "t\u1ED5ng h\u1EE3p", "tonghop", "overall", "general"],
     "PQC UNIT": ["PQC"],
     OQC: ["OQC(SPL)", "OQC SPL"]
   };
@@ -35157,7 +35168,7 @@
     return null;
   }
   var POSITION_VALUE_ALIASES = {
-    Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL"]
+    Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL", "RMA"]
   };
   function normalizePositionValue(raw) {
     const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
