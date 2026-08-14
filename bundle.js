@@ -7567,16 +7567,31 @@
       }
     );
   }
-  function groupByPosition(members) {
+  var POSITION_TIER = {
+    Worker: "Worker",
+    Staff: "Worker",
+    "Supervisor 1": "Supervisor",
+    "Supervisor 2": "Supervisor",
+    Manager: "Manager",
+    "Upper Manager": "Manager"
+  };
+  var TIER_ORDER = ["Manager", "Supervisor", "Worker"];
+  var tierRank = (tier) => {
+    const idx = TIER_ORDER.indexOf(tier);
+    return idx === -1 ? TIER_ORDER.length : idx;
+  };
+  function groupByTier(members) {
     const groups = /* @__PURE__ */ new Map();
     members.forEach((m) => {
-      if (!groups.has(m.position)) groups.set(m.position, []);
-      groups.get(m.position).push(m);
+      const tier = POSITION_TIER[m.position] || m.position;
+      if (!groups.has(tier)) groups.set(tier, []);
+      groups.get(tier).push(m);
     });
-    return [...groups.entries()].sort((a, b) => positionRank(b[0]) - positionRank(a[0]));
+    return [...groups.entries()].map(([tier, list]) => [tier, list.slice().sort((a, b) => positionRank(b.position) - positionRank(a.position))]).sort((a, b) => tierRank(a[0]) - tierRank(b[0]));
   }
   function TeamCard({
     team,
+    isEditing,
     onUpdateTitle,
     onDeleteTeam,
     onAddMember,
@@ -7594,7 +7609,7 @@
     const [titleDraft, setTitleDraft] = (0, import_react.useState)(team.title);
     const [addingMember, setAddingMember] = (0, import_react.useState)(false);
     const [editingMemberId, setEditingMemberId] = (0, import_react.useState)(null);
-    const grouped = groupByPosition(team.members);
+    const grouped = groupByTier(team.members);
     const renderMemberRow = (m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
       "div",
       {
@@ -7609,10 +7624,14 @@
         },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: m.empNo }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: [
+              m.empNo,
+              " \xB7 ",
+              m.position
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: m.name })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
+          isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC218\uC815", onClick: () => setEditingMemberId(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC0AD\uC81C", danger: true, onClick: () => onDeleteMember(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" }) })
           ] })
@@ -7692,8 +7711,21 @@
                             minWidth: 0
                           }
                         }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 13, fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis" }, onClick: () => setEditingTitle(true), children: team.title }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "span",
+                        {
+                          style: {
+                            fontSize: 13,
+                            fontWeight: 500,
+                            cursor: isEditing ? "pointer" : "default",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          },
+                          onClick: isEditing ? () => setEditingTitle(true) : void 0,
+                          children: team.title
+                        }
+                      ),
+                      isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
@@ -7717,7 +7749,7 @@
                   }
                 ),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", gap: 8 }, children: [
-                  grouped.map(([position, members]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  grouped.map(([tier, members]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                     "div",
                     {
                       style: {
@@ -7730,7 +7762,7 @@
                         background: "#FBFBF9"
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }, children: position }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
                         members.map(
                           (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                             MemberForm,
@@ -7747,7 +7779,7 @@
                         )
                       ]
                     },
-                    position
+                    tier
                   )),
                   addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     MemberForm,
@@ -7758,7 +7790,7 @@
                         setAddingMember(false);
                       }
                     }
-                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  ) : isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                     "button",
                     {
                       onClick: () => setAddingMember(true),
@@ -7778,7 +7810,7 @@
                         "\uD300\uC6D0 \uCD94\uAC00"
                       ]
                     }
-                  )
+                  ) : null
                 ] })
               ]
             }
@@ -7787,11 +7819,13 @@
       }
     );
   }
-  function OrgChart({ factory, data, setOrg }) {
+  function OrgChart({ factory, data, isEditing, setOrg }) {
     const [editingHeadId, setEditingHeadId] = (0, import_react.useState)(null);
     const [addingHead, setAddingHead] = (0, import_react.useState)(false);
     const [dragIndex, setDragIndex] = (0, import_react.useState)(null);
     const [overIndex, setOverIndex] = (0, import_react.useState)(null);
+    const [headDragIndex, setHeadDragIndex] = (0, import_react.useState)(null);
+    const [headOverIndex, setHeadOverIndex] = (0, import_react.useState)(null);
     const updateTeams = (updater) => {
       setOrg((prev) => ({
         ...prev,
@@ -7816,10 +7850,19 @@
         return next;
       });
     };
+    const moveHead = (fromIdx, toIdx) => {
+      updateHeads((heads) => {
+        if (fromIdx === toIdx || fromIdx == null || toIdx == null) return heads;
+        const next = [...heads];
+        const [moved] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, moved);
+        return next;
+      });
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }, children: [
         data.heads.map(
-          (h) => editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          (h, idx) => editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             MemberForm,
             {
               initial: h,
@@ -7834,30 +7877,53 @@
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
               "div",
               {
-                onClick: () => setEditingHeadId(h.id),
-                title: "\uD074\uB9AD\uD558\uC5EC \uC218\uC815",
+                draggable: true,
+                onDragStart: () => setHeadDragIndex(idx),
+                onDragOver: (e) => {
+                  e.preventDefault();
+                  if (headOverIndex !== idx) setHeadOverIndex(idx);
+                },
+                onDragLeave: () => setHeadOverIndex((cur) => cur === idx ? null : cur),
+                onDrop: (e) => {
+                  e.preventDefault();
+                  moveHead(headDragIndex, idx);
+                  setHeadDragIndex(null);
+                  setHeadOverIndex(null);
+                },
+                onDragEnd: () => {
+                  setHeadDragIndex(null);
+                  setHeadOverIndex(null);
+                },
+                onClick: isEditing ? () => setEditingHeadId(h.id) : void 0,
+                title: isEditing ? "\uD074\uB9AD\uD558\uC5EC \uC218\uC815 \xB7 \uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD" : "\uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD",
                 style: {
                   background: COLORS.headDark,
                   color: "#fff",
                   borderRadius: 999,
                   padding: "10px 22px",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  cursor: "pointer",
-                  minWidth: 180
+                  gap: 8,
+                  cursor: isEditing ? "pointer" : "grab",
+                  minWidth: 180,
+                  boxSizing: "border-box",
+                  border: `1.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : "transparent"}`,
+                  opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 14, fontWeight: 500 }, children: h.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, opacity: 0.8 }, children: [
-                    h.position,
-                    " \xB7 ",
-                    h.empNo
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 14, fontWeight: 500 }, children: h.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, opacity: 0.8 }, children: [
+                      h.position,
+                      " \xB7 ",
+                      h.empNo
+                    ] })
                   ] })
                 ]
               }
             ),
-            data.heads.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            isEditing && data.heads.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "button",
               {
                 onClick: () => {
@@ -7888,7 +7954,7 @@
             )
           ] }, h.id)
         ),
-        addingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        isEditing && (addingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           MemberForm,
           {
             isHead: true,
@@ -7903,7 +7969,7 @@
           {
             onClick: () => setAddingHead(true),
             style: {
-              padding: "10px 18px",
+              padding: "8px 18px",
               borderRadius: 999,
               border: `1px dashed ${COLORS.borderStrong}`,
               background: "transparent",
@@ -7917,7 +7983,7 @@
               "\uBD80\uC11C\uC7A5 \uCD94\uAC00"
             ]
           }
-        )
+        ))
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 18, background: COLORS.borderStrong } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page } }),
@@ -7927,6 +7993,7 @@
           TeamCard,
           {
             team,
+            isEditing,
             draggable: true,
             isDragOver: overIndex === idx && dragIndex !== idx,
             onDragStart: () => setDragIndex(idx),
@@ -7971,7 +8038,7 @@
           },
           team.id
         )),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }, children: [
+        isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 16, background: "transparent" } }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
@@ -7995,6 +8062,38 @@
           )
         ] })
       ] })
+    ] });
+  }
+  function FactoryOrgPanel({ factory, data, setOrg }) {
+    const [isEditing, setIsEditing] = (0, import_react.useState)(false);
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "18px 16px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 14, fontWeight: 500, color: COLORS.textSecondary }, children: [
+          factory,
+          "\uACF5\uC7A5 \uD488\uC9C8\uD300 \uC870\uC9C1\uB3C4"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          "button",
+          {
+            onClick: () => setIsEditing((v) => !v),
+            style: {
+              padding: "5px 12px",
+              fontSize: 12,
+              borderRadius: 6,
+              border: `0.5px solid ${isEditing ? COLORS.headDark : COLORS.border}`,
+              background: isEditing ? COLORS.headDark : COLORS.card,
+              color: isEditing ? "#fff" : COLORS.textSecondary,
+              cursor: "pointer",
+              fontWeight: 500
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { marginRight: 4 }, children: "\u270E" }),
+              isEditing ? "\uC218\uC815 \uC644\uB8CC" : "\uC218\uC815"
+            ]
+          }
+        )
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(OrgChart, { factory, data, isEditing, setOrg })
     ] });
   }
   function QualityPortal() {
@@ -8132,13 +8231,7 @@
           }) })
         ] })
       ] }),
-      tab === "org" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 28 }, children: (factory === "all" ? [1, 2] : [factory]).map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "18px 16px" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 14, fontWeight: 500, color: COLORS.textSecondary, marginBottom: 4 }, children: [
-          f,
-          "\uACF5\uC7A5 \uD488\uC9C8\uD300 \uC870\uC9C1\uB3C4"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(OrgChart, { factory: f, data: org[f], setOrg })
-      ] }, f)) }),
+      tab === "org" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 28 }, children: (factory === "all" ? [1, 2] : [factory]).map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryOrgPanel, { factory: f, data: org[f], setOrg }, f)) }),
       tab === "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 18px" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" }, children: ["\uC804\uCCB4", "\uCD9C\uADFC", "\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"].map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(

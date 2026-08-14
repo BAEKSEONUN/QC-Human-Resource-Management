@@ -324,14 +324,34 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
   );
 }
 
-// 팀원을 직급별로 묶어 [직급, 팀원목록] 쌍의 배열로 반환한다 (서열 높은 직급 먼저)
-function groupByPosition(members) {
+// 6단계 세부 직급을 Manager / Supervisor / Worker 3단계로 묶어서 보여준다.
+// (Manager: Manager·Upper Manager, Supervisor: Supervisor 1·2, Worker: Worker·Staff)
+const POSITION_TIER = {
+  Worker: "Worker",
+  Staff: "Worker",
+  "Supervisor 1": "Supervisor",
+  "Supervisor 2": "Supervisor",
+  Manager: "Manager",
+  "Upper Manager": "Manager",
+};
+const TIER_ORDER = ["Manager", "Supervisor", "Worker"];
+const tierRank = (tier) => {
+  const idx = TIER_ORDER.indexOf(tier);
+  return idx === -1 ? TIER_ORDER.length : idx;
+};
+
+// 팀원을 직급 그룹(Manager/Supervisor/Worker)으로 묶어 [그룹, 팀원목록] 쌍의
+// 배열로 반환한다 (서열 높은 그룹 먼저, 그룹 안에서도 세부 직급 높은 순)
+function groupByTier(members) {
   const groups = new Map();
   members.forEach((m) => {
-    if (!groups.has(m.position)) groups.set(m.position, []);
-    groups.get(m.position).push(m);
+    const tier = POSITION_TIER[m.position] || m.position;
+    if (!groups.has(tier)) groups.set(tier, []);
+    groups.get(tier).push(m);
   });
-  return [...groups.entries()].sort((a, b) => positionRank(b[0]) - positionRank(a[0]));
+  return [...groups.entries()]
+    .map(([tier, list]) => [tier, list.slice().sort((a, b) => positionRank(b.position) - positionRank(a.position))])
+    .sort((a, b) => tierRank(a[0]) - tierRank(b[0]));
 }
 
 // ---------- 조직도 팀 카드 ----------
@@ -341,6 +361,7 @@ function groupByPosition(members) {
 // 드래그로 바꿀 수 있도록 전달하는 핸들러다.
 function TeamCard({
   team,
+  isEditing,
   onUpdateTitle,
   onDeleteTeam,
   onAddMember,
@@ -359,7 +380,7 @@ function TeamCard({
   const [addingMember, setAddingMember] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState(null);
 
-  const grouped = groupByPosition(team.members);
+  const grouped = groupByTier(team.members);
 
   const renderMemberRow = (m) => (
     <div
@@ -375,17 +396,21 @@ function TeamCard({
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: COLORS.textMuted }}>{m.empNo}</div>
+        <div style={{ fontSize: 11, color: COLORS.textMuted }}>
+          {m.empNo} · {m.position}
+        </div>
         <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{m.name}</div>
       </div>
-      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-        <IconBtn title="수정" onClick={() => setEditingMemberId(m.id)}>
-          <span aria-hidden="true">✎</span>
-        </IconBtn>
-        <IconBtn title="삭제" danger onClick={() => onDeleteMember(m.id)}>
-          <span aria-hidden="true">🗑</span>
-        </IconBtn>
-      </div>
+      {isEditing && (
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          <IconBtn title="수정" onClick={() => setEditingMemberId(m.id)}>
+            <span aria-hidden="true">✎</span>
+          </IconBtn>
+          <IconBtn title="삭제" danger onClick={() => onDeleteMember(m.id)}>
+            <span aria-hidden="true">🗑</span>
+          </IconBtn>
+        </div>
+      )}
     </div>
   );
 
@@ -460,32 +485,43 @@ function TeamCard({
               }}
             />
           ) : (
-            <span style={{ fontSize: 13, fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis" }} onClick={() => setEditingTitle(true)}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: isEditing ? "pointer" : "default",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              onClick={isEditing ? () => setEditingTitle(true) : undefined}
+            >
               {team.title}
             </span>
           )}
-          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-            <button
-              onClick={() => setEditingTitle(true)}
-              title="팀 이름 수정"
-              style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
-            >
-              <span aria-hidden="true">✎</span>
-            </button>
-            <button
-              onClick={onDeleteTeam}
-              title="팀 삭제"
-              style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
-            >
-              <span aria-hidden="true">🗑</span>
-            </button>
-          </div>
+          {isEditing && (
+            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              <button
+                onClick={() => setEditingTitle(true)}
+                title="팀 이름 수정"
+                style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
+              >
+                <span aria-hidden="true">✎</span>
+              </button>
+              <button
+                onClick={onDeleteTeam}
+                title="팀 삭제"
+                style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
+              >
+                <span aria-hidden="true">🗑</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-          {grouped.map(([position, members]) => (
+          {grouped.map(([tier, members]) => (
             <div
-              key={position}
+              key={tier}
               style={{
                 border: `0.5px solid ${COLORS.border}`,
                 borderRadius: 8,
@@ -497,7 +533,7 @@ function TeamCard({
               }}
             >
               <div style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }}>
-                {position}
+                {tier}
               </div>
               {members.map((m) =>
                 editingMemberId === m.id ? (
@@ -525,7 +561,7 @@ function TeamCard({
                 setAddingMember(false);
               }}
             />
-          ) : (
+          ) : isEditing ? (
             <button
               onClick={() => setAddingMember(true)}
               style={{
@@ -543,7 +579,7 @@ function TeamCard({
               <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
               팀원 추가
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -551,11 +587,13 @@ function TeamCard({
 }
 
 // ---------- 조직도 (공장 1개) ----------
-function OrgChart({ factory, data, setOrg }) {
+function OrgChart({ factory, data, isEditing, setOrg }) {
   const [editingHeadId, setEditingHeadId] = useState(null);
   const [addingHead, setAddingHead] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
+  const [headDragIndex, setHeadDragIndex] = useState(null);
+  const [headOverIndex, setHeadOverIndex] = useState(null);
 
   const updateTeams = (updater) => {
     setOrg((prev) => ({
@@ -585,10 +623,22 @@ function OrgChart({ factory, data, setOrg }) {
     });
   };
 
+  const moveHead = (fromIdx, toIdx) => {
+    updateHeads((heads) => {
+      if (fromIdx === toIdx || fromIdx == null || toIdx == null) return heads;
+      const next = [...heads];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-        {data.heads.map((h) =>
+      {/* 부서장은 위/아래 드래그로 서열을 표현할 수 있도록 세로로 쌓아 보여준다.
+          드래그 정렬 자체는 수정 모드와 무관하게 항상 가능하다. */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        {data.heads.map((h, idx) =>
           editingHeadId === h.id ? (
             <div key={h.id} style={{ width: 260, maxWidth: "100%" }}>
               <MemberForm
@@ -604,26 +654,51 @@ function OrgChart({ factory, data, setOrg }) {
           ) : (
             <div key={h.id} style={{ position: "relative" }}>
               <div
-                onClick={() => setEditingHeadId(h.id)}
-                title="클릭하여 수정"
+                draggable
+                onDragStart={() => setHeadDragIndex(idx)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (headOverIndex !== idx) setHeadOverIndex(idx);
+                }}
+                onDragLeave={() => setHeadOverIndex((cur) => (cur === idx ? null : cur))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  moveHead(headDragIndex, idx);
+                  setHeadDragIndex(null);
+                  setHeadOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setHeadDragIndex(null);
+                  setHeadOverIndex(null);
+                }}
+                onClick={isEditing ? () => setEditingHeadId(h.id) : undefined}
+                title={isEditing ? "클릭하여 수정 · 드래그하여 순서 변경" : "드래그하여 순서 변경"}
                 style={{
                   background: COLORS.headDark,
                   color: "#fff",
                   borderRadius: 999,
                   padding: "10px 22px",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  cursor: "pointer",
+                  gap: 8,
+                  cursor: isEditing ? "pointer" : "grab",
                   minWidth: 180,
+                  boxSizing: "border-box",
+                  border: `1.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : "transparent"}`,
+                  opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1,
                 }}
               >
-                <span style={{ fontSize: 14, fontWeight: 500 }}>{h.name}</span>
-                <span style={{ fontSize: 11, opacity: 0.8 }}>
-                  {h.position} · {h.empNo}
+                <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12, flexShrink: 0 }}>
+                  ⠿
                 </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{h.name}</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>
+                    {h.position} · {h.empNo}
+                  </span>
+                </div>
               </div>
-              {data.heads.length > 1 && (
+              {isEditing && data.heads.length > 1 && (
                 <button
                   onClick={() => {
                     if (confirm(`"${h.name}" 부서장을 삭제할까요?`)) {
@@ -656,35 +731,36 @@ function OrgChart({ factory, data, setOrg }) {
           )
         )}
 
-        {addingHead ? (
-          <div style={{ width: 260, maxWidth: "100%" }}>
-            <MemberForm
-              isHead
-              onCancel={() => setAddingHead(false)}
-              onSave={(d) => {
-                updateHeads((heads) => [...heads, { id: nextId(), ...d, factory }]);
-                setAddingHead(false);
+        {isEditing &&
+          (addingHead ? (
+            <div style={{ width: 260, maxWidth: "100%" }}>
+              <MemberForm
+                isHead
+                onCancel={() => setAddingHead(false)}
+                onSave={(d) => {
+                  updateHeads((heads) => [...heads, { id: nextId(), ...d, factory }]);
+                  setAddingHead(false);
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingHead(true)}
+              style={{
+                padding: "8px 18px",
+                borderRadius: 999,
+                border: `1px dashed ${COLORS.borderStrong}`,
+                background: "transparent",
+                color: COLORS.textSecondary,
+                fontSize: 13,
+                cursor: "pointer",
+                minWidth: 140,
               }}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => setAddingHead(true)}
-            style={{
-              padding: "10px 18px",
-              borderRadius: 999,
-              border: `1px dashed ${COLORS.borderStrong}`,
-              background: "transparent",
-              color: COLORS.textSecondary,
-              fontSize: 13,
-              cursor: "pointer",
-              minWidth: 140,
-            }}
-          >
-            <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
-            부서장 추가
-          </button>
-        )}
+            >
+              <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
+              부서장 추가
+            </button>
+          ))}
       </div>
 
       <div style={{ width: 1, height: 18, background: COLORS.borderStrong }} />
@@ -697,6 +773,7 @@ function OrgChart({ factory, data, setOrg }) {
           <TeamCard
             key={team.id}
             team={team}
+            isEditing={isEditing}
             draggable
             isDragOver={overIndex === idx && dragIndex !== idx}
             onDragStart={() => setDragIndex(idx)}
@@ -751,26 +828,60 @@ function OrgChart({ factory, data, setOrg }) {
           />
         ))}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }}>
-          <div style={{ width: 1, height: 16, background: "transparent" }} />
-          <button
-            onClick={addTeam}
-            style={{
-              width: "100%",
-              minHeight: 60,
-              borderRadius: 10,
-              border: `1px dashed ${COLORS.borderStrong}`,
-              background: "transparent",
-              color: COLORS.textSecondary,
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
-            팀 추가
-          </button>
-        </div>
+        {isEditing && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }}>
+            <div style={{ width: 1, height: 16, background: "transparent" }} />
+            <button
+              onClick={addTeam}
+              style={{
+                width: "100%",
+                minHeight: 60,
+                borderRadius: 10,
+                border: `1px dashed ${COLORS.borderStrong}`,
+                background: "transparent",
+                color: COLORS.textSecondary,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
+              팀 추가
+            </button>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+// 공장별 조직도 패널. 우측 상단 "수정" 버튼으로 편집 모드를 켜고 끄며,
+// 편집 모드일 때만 추가/수정/삭제 컨트롤이 나타난다 (팀·부서장 드래그 이동은
+// 편집 모드와 무관하게 항상 가능).
+function FactoryOrgPanel({ factory, data, setOrg }) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  return (
+    <div style={{ background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "18px 16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.textSecondary }}>{factory}공장 품질팀 조직도</div>
+        <button
+          onClick={() => setIsEditing((v) => !v)}
+          style={{
+            padding: "5px 12px",
+            fontSize: 12,
+            borderRadius: 6,
+            border: `0.5px solid ${isEditing ? COLORS.headDark : COLORS.border}`,
+            background: isEditing ? COLORS.headDark : COLORS.card,
+            color: isEditing ? "#fff" : COLORS.textSecondary,
+            cursor: "pointer",
+            fontWeight: 500,
+          }}
+        >
+          <span aria-hidden="true" style={{ marginRight: 4 }}>✎</span>
+          {isEditing ? "수정 완료" : "수정"}
+        </button>
+      </div>
+      <OrgChart factory={factory} data={data} isEditing={isEditing} setOrg={setOrg} />
     </div>
   );
 }
@@ -949,10 +1060,7 @@ export default function QualityPortal() {
         {tab === "org" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
             {(factory === "all" ? [1, 2] : [factory]).map((f) => (
-              <div key={f} style={{ background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "18px 16px" }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.textSecondary, marginBottom: 4 }}>{f}공장 품질팀 조직도</div>
-                <OrgChart factory={f} data={org[f]} setOrg={setOrg} />
-              </div>
+              <FactoryOrgPanel key={f} factory={f} data={org[f]} setOrg={setOrg} />
             ))}
           </div>
         )}
