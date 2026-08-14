@@ -112,6 +112,7 @@ const DICT = {
   },
   confirmDeleteMember: { ko: "이 팀원을 삭제할까요?", vi: "Xóa thành viên này?" },
   dragTeamTitle: { ko: "드래그하여 팀 순서 변경", vi: "Kéo để đổi thứ tự nhóm" },
+  dragMemberTitle: { ko: "드래그하여 다른 팀으로 이동", vi: "Kéo để chuyển sang nhóm khác" },
   editTeamNameTitle: { ko: "팀 이름 수정", vi: "Sửa tên nhóm" },
   deleteTeamTitle: { ko: "팀 삭제", vi: "Xóa nhóm" },
   addMember: { ko: "팀원 추가", vi: "Thêm thành viên" },
@@ -595,6 +596,10 @@ function TeamCard({
   onDragLeave,
   onDrop,
   onDragEnd,
+  onMemberDragStart,
+  onMemberDragEnd,
+  isMemberDropTarget,
+  onMemberDrop,
 }) {
   const { lang } = useLang();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -614,9 +619,22 @@ function TeamCard({
 
   const grouped = groupByTier(team.members);
 
+  // 팀원 카드 자체는 수정 모드에서만 드래그로 다른 팀 카드로 옮길 수 있다.
+  // 팀 카드(헤더) 드래그와 별개의 제스처이므로 stopPropagation으로 상위
+  // 카드 재정렬 핸들러가 같이 반응하지 않게 막는다.
   const renderMemberRow = (m, tc) => (
     <div
       key={m.id}
+      draggable={isEditing}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        onMemberDragStart?.(m.id);
+      }}
+      onDragEnd={(e) => {
+        e.stopPropagation();
+        onMemberDragEnd?.();
+      }}
+      title={isEditing ? t(lang, "dragMemberTitle") : undefined}
       style={{
         display: "flex",
         alignItems: "center",
@@ -628,6 +646,7 @@ function TeamCard({
         borderRight: `0.5px solid ${COLORS.border}`,
         borderBottom: `0.5px solid ${COLORS.border}`,
         borderLeft: `3px solid ${tc.color}`,
+        cursor: isEditing ? "grab" : "default",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -751,7 +770,30 @@ function TeamCard({
           )}
         </div>
 
-        <div style={{ padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+        <div
+          onDragOver={(e) => {
+            if (!isMemberDropTarget) return;
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            if (!isMemberDropTarget) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onMemberDrop?.();
+          }}
+          style={{
+            padding: 8,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0,
+            background: isMemberDropTarget ? COLORS.tealBg : "transparent",
+            outline: isMemberDropTarget ? `1.5px dashed ${COLORS.teal}` : "none",
+            outlineOffset: -4,
+            borderRadius: 8,
+          }}
+        >
           {grouped.map(([tier, members], idx) => {
             const tc = tierColorsOf(tier);
             return (
@@ -894,6 +936,23 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
       const [moved] = next.splice(fromIdx, 1);
       next.splice(toIdx, 0, moved);
       return next;
+    });
+  };
+
+  // 팀원을 다른 팀 카드로 드래그해서 옮기는 상태. 직급/이름 등은 그대로
+  // 두고 소속 팀만 바뀐다.
+  const [draggedMemberInfo, setDraggedMemberInfo] = useState(null);
+  const moveMemberBetweenTeams = (sourceTeamId, targetTeamId, memberId) => {
+    if (sourceTeamId === targetTeamId) return;
+    updateTeams((teams) => {
+      const sourceTeam = teams.find((t) => t.id === sourceTeamId);
+      const member = sourceTeam?.members.find((m) => m.id === memberId);
+      if (!member) return teams;
+      return teams.map((t) => {
+        if (t.id === sourceTeamId) return { ...t, members: t.members.filter((m) => m.id !== memberId) };
+        if (t.id === targetTeamId) return { ...t, members: [...t.members, member] };
+        return t;
+      });
     });
   };
 
@@ -1096,6 +1155,13 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
                   teams.map((t) => (t.id === team.id ? { ...t, members: t.members.filter((m) => m.id !== memberId) } : t))
                 );
               }
+            }}
+            onMemberDragStart={(memberId) => setDraggedMemberInfo({ memberId, sourceTeamId: team.id })}
+            onMemberDragEnd={() => setDraggedMemberInfo(null)}
+            isMemberDropTarget={!!draggedMemberInfo && draggedMemberInfo.sourceTeamId !== team.id}
+            onMemberDrop={() => {
+              if (draggedMemberInfo) moveMemberBetweenTeams(draggedMemberInfo.sourceTeamId, team.id, draggedMemberInfo.memberId);
+              setDraggedMemberInfo(null);
             }}
           />
         ))}
@@ -1598,6 +1664,8 @@ export default function QualityPortal() {
   const [statusFilter, setStatusFilter] = useState("전체");
   const [search, setSearch] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [listEditing, setListEditing] = useState(false);
+  const [editingListId, setEditingListId] = useState(null);
 
   // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
   useEffect(() => {
@@ -1622,9 +1690,11 @@ export default function QualityPortal() {
     const list = [];
     [1, 2].forEach((f) => {
       const d = org[f];
-      d.heads.forEach((h) => list.push({ ...h, team: "부서장", isHead: true, status: "출근" }));
+      d.heads.forEach((h) =>
+        list.push({ ...h, team: "부서장", isHead: true, status: "출근", headCountInFactory: d.heads.length })
+      );
       d.teams.forEach((t) => {
-        t.members.forEach((m) => list.push({ ...m, team: t.title }));
+        t.members.forEach((m) => list.push({ ...m, team: t.title, teamId: t.id }));
       });
     });
     return list;
@@ -1659,6 +1729,47 @@ export default function QualityPortal() {
       .slice()
       .sort(sortByDeptAndPosition);
   }, [scoped, statusFilter, search]);
+
+  // 전체 명단에서 부서장/팀원 항목을 수정·삭제한다. isHead 여부로 heads
+  // 배열을 고칠지, teamId로 찾은 팀의 members 배열을 고칠지 분기한다.
+  const updateListEntry = (entry, data) => {
+    setOrg((prev) => {
+      const factoryData = prev[entry.factory];
+      if (entry.isHead) {
+        return {
+          ...prev,
+          [entry.factory]: { ...factoryData, heads: factoryData.heads.map((h) => (h.id === entry.id ? { ...h, ...data } : h)) },
+        };
+      }
+      return {
+        ...prev,
+        [entry.factory]: {
+          ...factoryData,
+          teams: factoryData.teams.map((tm) =>
+            tm.id === entry.teamId ? { ...tm, members: tm.members.map((m) => (m.id === entry.id ? { ...m, ...data } : m)) } : tm
+          ),
+        },
+      };
+    });
+  };
+
+  const deleteListEntry = (entry) => {
+    setOrg((prev) => {
+      const factoryData = prev[entry.factory];
+      if (entry.isHead) {
+        return { ...prev, [entry.factory]: { ...factoryData, heads: factoryData.heads.filter((h) => h.id !== entry.id) } };
+      }
+      return {
+        ...prev,
+        [entry.factory]: {
+          ...factoryData,
+          teams: factoryData.teams.map((tm) =>
+            tm.id === entry.teamId ? { ...tm, members: tm.members.filter((m) => m.id !== entry.id) } : tm
+          ),
+        },
+      };
+    });
+  };
 
   const FactoryBtn = ({ value, label }) => (
     <button
@@ -1720,7 +1831,12 @@ export default function QualityPortal() {
 
   // 전체 명단 표의 컬럼 폭. 직급 라벨이 "Upper Manager" 등 영문으로 길어져
   // 기존 100px로는 잘려 보였으므로 넉넉하게 넓혔다 (헤더/데이터 행 동일하게 유지).
-  const LIST_GRID_COLUMNS = "90px 1fr 130px 70px 1.2fr 110px";
+  // 수정 모드일 때는 끝에 수정/삭제 아이콘을 위한 칸을 추가한다.
+  const LIST_GRID_COLUMNS = listEditing
+    ? "90px 1fr 130px 70px 1.2fr 110px 70px"
+    : "90px 1fr 130px 70px 1.2fr 110px";
+
+  const listLocked = listEditing && editingListId !== null;
 
   return (
     <LangContext.Provider value={langCtx}>
@@ -1843,6 +1959,29 @@ export default function QualityPortal() {
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button
+                    onClick={() => {
+                      if (listLocked) return;
+                      setListEditing((v) => !v);
+                    }}
+                    disabled={listLocked}
+                    title={listLocked ? t(lang, "editDoneDisabledTitle") : undefined}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: `0.5px solid ${listEditing ? COLORS.headDark : COLORS.border}`,
+                      background: listEditing ? COLORS.headDark : COLORS.card,
+                      color: listEditing ? "#fff" : COLORS.textSecondary,
+                      fontSize: 12,
+                      cursor: listLocked ? "not-allowed" : "pointer",
+                      opacity: listLocked ? 0.65 : 1,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ marginRight: 4 }}>✎</span>
+                    {listEditing ? t(lang, "editDone") : t(lang, "edit")}
+                  </button>
+                  <button
                     onClick={() => setShowUpload(true)}
                     style={{
                       height: 30,
@@ -1886,15 +2025,33 @@ export default function QualityPortal() {
                   <span>{t(lang, "colFactory")}</span>
                   <span>{t(lang, "colNote")}</span>
                   <span style={{ textAlign: "right" }}>{t(lang, "colStatus")}</span>
+                  {listEditing && <span />}
                 </div>
 
                 {filteredList.map((e) => {
+                  if (editingListId === e.id) {
+                    return (
+                      <div key={e.id} style={{ padding: "2px 0" }}>
+                        <MemberForm
+                          initial={e}
+                          isHead={e.isHead}
+                          onCancel={() => setEditingListId(null)}
+                          onSave={(data) => {
+                            updateListEntry(e, data);
+                            setEditingListId(null);
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+
                   const meta = STATUS_META[e.status];
                   let note = "-";
                   if (e.status === "병가" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
                   if (e.status === "출산휴가" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
                   if (e.status === "결근") note = t(lang, "noteAbsent");
                   const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
+                  const canDelete = !e.isHead || e.headCountInFactory > 1;
                   return (
                     <div
                       key={e.id}
@@ -1920,6 +2077,25 @@ export default function QualityPortal() {
                       <div style={{ textAlign: "right" }}>
                         <Badge status={e.status} />
                       </div>
+                      {listEditing && (
+                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                          <IconBtn title={t(lang, "memberEditTitle")} onClick={() => setEditingListId(e.id)}>
+                            <span aria-hidden="true">✎</span>
+                          </IconBtn>
+                          {canDelete && (
+                            <IconBtn
+                              title={t(lang, "memberDeleteTitle")}
+                              danger
+                              onClick={() => {
+                                const msg = e.isHead ? t(lang, "confirmDeleteHead", e.name) : t(lang, "confirmDeleteMember");
+                                if (confirm(msg)) deleteListEntry(e);
+                              }}
+                            >
+                              <span aria-hidden="true">🗑</span>
+                            </IconBtn>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -34171,6 +34171,7 @@
     },
     confirmDeleteMember: { ko: "\uC774 \uD300\uC6D0\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?", vi: "X\xF3a th\xE0nh vi\xEAn n\xE0y?" },
     dragTeamTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uD300 \uC21C\uC11C \uBCC0\uACBD", vi: "K\xE9o \u0111\u1EC3 \u0111\u1ED5i th\u1EE9 t\u1EF1 nh\xF3m" },
+    dragMemberTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uB2E4\uB978 \uD300\uC73C\uB85C \uC774\uB3D9", vi: "K\xE9o \u0111\u1EC3 chuy\u1EC3n sang nh\xF3m kh\xE1c" },
     editTeamNameTitle: { ko: "\uD300 \uC774\uB984 \uC218\uC815", vi: "S\u1EEDa t\xEAn nh\xF3m" },
     deleteTeamTitle: { ko: "\uD300 \uC0AD\uC81C", vi: "X\xF3a nh\xF3m" },
     addMember: { ko: "\uD300\uC6D0 \uCD94\uAC00", vi: "Th\xEAm th\xE0nh vi\xEAn" },
@@ -34593,7 +34594,11 @@
     onDragOver,
     onDragLeave,
     onDrop,
-    onDragEnd
+    onDragEnd,
+    onMemberDragStart,
+    onMemberDragEnd,
+    isMemberDropTarget,
+    onMemberDrop
   }) {
     const { lang } = useLang();
     const [editingTitle, setEditingTitle] = (0, import_react.useState)(false);
@@ -34613,6 +34618,16 @@
     const renderMemberRow = (m, tc) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
       "div",
       {
+        draggable: isEditing,
+        onDragStart: (e) => {
+          e.stopPropagation();
+          onMemberDragStart?.(m.id);
+        },
+        onDragEnd: (e) => {
+          e.stopPropagation();
+          onMemberDragEnd?.();
+        },
+        title: isEditing ? t(lang, "dragMemberTitle") : void 0,
         style: {
           display: "flex",
           alignItems: "center",
@@ -34623,7 +34638,8 @@
           borderTop: `0.5px solid ${COLORS.border}`,
           borderRight: `0.5px solid ${COLORS.border}`,
           borderBottom: `0.5px solid ${COLORS.border}`,
-          borderLeft: `3px solid ${tc.color}`
+          borderLeft: `3px solid ${tc.color}`,
+          cursor: isEditing ? "grab" : "default"
         },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
@@ -34747,78 +34763,105 @@
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }, children: [
-                  grouped.map(([tier, members], idx) => {
-                    const tc = tierColorsOf(tier);
-                    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: idx === 0 ? 8 : 10, background: COLORS.borderStrong } }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                        "div",
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "div",
+                  {
+                    onDragOver: (e) => {
+                      if (!isMemberDropTarget) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                    },
+                    onDrop: (e) => {
+                      if (!isMemberDropTarget) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onMemberDrop?.();
+                    },
+                    style: {
+                      padding: 8,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 0,
+                      background: isMemberDropTarget ? COLORS.tealBg : "transparent",
+                      outline: isMemberDropTarget ? `1.5px dashed ${COLORS.teal}` : "none",
+                      outlineOffset: -4,
+                      borderRadius: 8
+                    },
+                    children: [
+                      grouped.map(([tier, members], idx) => {
+                        const tc = tierColorsOf(tier);
+                        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: idx === 0 ? 8 : 10, background: COLORS.borderStrong } }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                            "div",
+                            {
+                              style: {
+                                width: "100%",
+                                boxSizing: "border-box",
+                                border: `0.5px solid ${tc.border}`,
+                                borderRadius: 8,
+                                padding: 6,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                                background: tc.bg
+                              },
+                              children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: "#000000", letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
+                                members.map(
+                                  (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                    MemberForm,
+                                    {
+                                      initial: m,
+                                      onCancel: () => setEditingMemberId(null),
+                                      onSave: (data) => {
+                                        onEditMember(m.id, data);
+                                        setEditingMemberId(null);
+                                      }
+                                    },
+                                    m.id
+                                  ) : renderMemberRow(m, tc)
+                                )
+                              ]
+                            }
+                          )
+                        ] }, tier);
+                      }),
+                      addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", marginTop: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        MemberForm,
                         {
+                          onCancel: () => setAddingMember(false),
+                          onSave: (data) => {
+                            onAddMember(data);
+                            setAddingMember(false);
+                          }
+                        }
+                      ) }) : isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          onClick: () => setAddingMember(true),
                           style: {
+                            fontSize: 12,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: `0.5px dashed ${COLORS.borderStrong}`,
+                            background: "transparent",
+                            color: COLORS.textSecondary,
+                            cursor: "pointer",
                             width: "100%",
                             boxSizing: "border-box",
-                            border: `0.5px solid ${tc.border}`,
-                            borderRadius: 8,
-                            padding: 6,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                            background: tc.bg
+                            marginTop: 8
                           },
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: "#000000", letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
-                            members.map(
-                              (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                MemberForm,
-                                {
-                                  initial: m,
-                                  onCancel: () => setEditingMemberId(null),
-                                  onSave: (data) => {
-                                    onEditMember(m.id, data);
-                                    setEditingMemberId(null);
-                                  }
-                                },
-                                m.id
-                              ) : renderMemberRow(m, tc)
-                            )
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
+                            t(lang, "addMember")
                           ]
                         }
-                      )
-                    ] }, tier);
-                  }),
-                  addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", marginTop: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    MemberForm,
-                    {
-                      onCancel: () => setAddingMember(false),
-                      onSave: (data) => {
-                        onAddMember(data);
-                        setAddingMember(false);
-                      }
-                    }
-                  ) }) : isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      onClick: () => setAddingMember(true),
-                      style: {
-                        fontSize: 12,
-                        padding: "6px 8px",
-                        borderRadius: 6,
-                        border: `0.5px dashed ${COLORS.borderStrong}`,
-                        background: "transparent",
-                        color: COLORS.textSecondary,
-                        cursor: "pointer",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        marginTop: 8
-                      },
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
-                        t(lang, "addMember")
-                      ]
-                    }
-                  ) : null
-                ] })
+                      ) : null
+                    ]
+                  }
+                )
               ]
             }
           )
@@ -34880,6 +34923,20 @@
         const [moved] = next.splice(fromIdx, 1);
         next.splice(toIdx, 0, moved);
         return next;
+      });
+    };
+    const [draggedMemberInfo, setDraggedMemberInfo] = (0, import_react.useState)(null);
+    const moveMemberBetweenTeams = (sourceTeamId, targetTeamId, memberId) => {
+      if (sourceTeamId === targetTeamId) return;
+      updateTeams((teams) => {
+        const sourceTeam = teams.find((t2) => t2.id === sourceTeamId);
+        const member = sourceTeam?.members.find((m) => m.id === memberId);
+        if (!member) return teams;
+        return teams.map((t2) => {
+          if (t2.id === sourceTeamId) return { ...t2, members: t2.members.filter((m) => m.id !== memberId) };
+          if (t2.id === targetTeamId) return { ...t2, members: [...t2.members, member] };
+          return t2;
+        });
       });
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
@@ -35062,6 +35119,13 @@
                   (teams) => teams.map((t2) => t2.id === team.id ? { ...t2, members: t2.members.filter((m) => m.id !== memberId) } : t2)
                 );
               }
+            },
+            onMemberDragStart: (memberId) => setDraggedMemberInfo({ memberId, sourceTeamId: team.id }),
+            onMemberDragEnd: () => setDraggedMemberInfo(null),
+            isMemberDropTarget: !!draggedMemberInfo && draggedMemberInfo.sourceTeamId !== team.id,
+            onMemberDrop: () => {
+              if (draggedMemberInfo) moveMemberBetweenTeams(draggedMemberInfo.sourceTeamId, team.id, draggedMemberInfo.memberId);
+              setDraggedMemberInfo(null);
             }
           },
           team.id
@@ -35487,6 +35551,8 @@
     const [statusFilter, setStatusFilter] = (0, import_react.useState)("\uC804\uCCB4");
     const [search, setSearch] = (0, import_react.useState)("");
     const [showUpload, setShowUpload] = (0, import_react.useState)(false);
+    const [listEditing, setListEditing] = (0, import_react.useState)(false);
+    const [editingListId, setEditingListId] = (0, import_react.useState)(null);
     (0, import_react.useEffect)(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
@@ -35504,9 +35570,11 @@
       const list = [];
       [1, 2].forEach((f) => {
         const d = org[f];
-        d.heads.forEach((h) => list.push({ ...h, team: "\uBD80\uC11C\uC7A5", isHead: true, status: "\uCD9C\uADFC" }));
+        d.heads.forEach(
+          (h) => list.push({ ...h, team: "\uBD80\uC11C\uC7A5", isHead: true, status: "\uCD9C\uADFC", headCountInFactory: d.heads.length })
+        );
         d.teams.forEach((t2) => {
-          t2.members.forEach((m) => list.push({ ...m, team: t2.title }));
+          t2.members.forEach((m) => list.push({ ...m, team: t2.title, teamId: t2.id }));
         });
       });
       return list;
@@ -35528,6 +35596,43 @@
     const filteredList = (0, import_react.useMemo)(() => {
       return scoped.filter((e) => statusFilter === "\uC804\uCCB4" || e.status === statusFilter).filter((e) => !search.trim() || e.name.includes(search.trim()) || e.empNo.includes(search.trim())).slice().sort(sortByDeptAndPosition);
     }, [scoped, statusFilter, search]);
+    const updateListEntry = (entry, data) => {
+      setOrg((prev) => {
+        const factoryData = prev[entry.factory];
+        if (entry.isHead) {
+          return {
+            ...prev,
+            [entry.factory]: { ...factoryData, heads: factoryData.heads.map((h) => h.id === entry.id ? { ...h, ...data } : h) }
+          };
+        }
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            teams: factoryData.teams.map(
+              (tm) => tm.id === entry.teamId ? { ...tm, members: tm.members.map((m) => m.id === entry.id ? { ...m, ...data } : m) } : tm
+            )
+          }
+        };
+      });
+    };
+    const deleteListEntry = (entry) => {
+      setOrg((prev) => {
+        const factoryData = prev[entry.factory];
+        if (entry.isHead) {
+          return { ...prev, [entry.factory]: { ...factoryData, heads: factoryData.heads.filter((h) => h.id !== entry.id) } };
+        }
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            teams: factoryData.teams.map(
+              (tm) => tm.id === entry.teamId ? { ...tm, members: tm.members.filter((m) => m.id !== entry.id) } : tm
+            )
+          }
+        };
+      });
+    };
     const FactoryBtn = ({ value, label }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "button",
       {
@@ -35585,7 +35690,8 @@
         ]
       }
     );
-    const LIST_GRID_COLUMNS = "90px 1fr 130px 70px 1.2fr 110px";
+    const LIST_GRID_COLUMNS = listEditing ? "90px 1fr 130px 70px 1.2fr 110px 70px" : "90px 1fr 130px 70px 1.2fr 110px";
+    const listLocked = listEditing && editingListId !== null;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LangContext.Provider, { value: langCtx, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { maxWidth: 1400, margin: "0 auto", padding: "20px 20px 40px" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }, children: [
@@ -35678,6 +35784,33 @@
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                 "button",
                 {
+                  onClick: () => {
+                    if (listLocked) return;
+                    setListEditing((v) => !v);
+                  },
+                  disabled: listLocked,
+                  title: listLocked ? t(lang, "editDoneDisabledTitle") : void 0,
+                  style: {
+                    height: 30,
+                    padding: "0 12px",
+                    borderRadius: 6,
+                    border: `0.5px solid ${listEditing ? COLORS.headDark : COLORS.border}`,
+                    background: listEditing ? COLORS.headDark : COLORS.card,
+                    color: listEditing ? "#fff" : COLORS.textSecondary,
+                    fontSize: 12,
+                    cursor: listLocked ? "not-allowed" : "pointer",
+                    opacity: listLocked ? 0.65 : 1,
+                    fontWeight: 500
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { marginRight: 4 }, children: "\u270E" }),
+                    listEditing ? t(lang, "editDone") : t(lang, "edit")
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
                   onClick: () => setShowUpload(true),
                   style: {
                     height: 30,
@@ -35725,17 +35858,33 @@
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colPosition") }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colFactory") }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colNote") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { textAlign: "right" }, children: t(lang, "colStatus") })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { textAlign: "right" }, children: t(lang, "colStatus") }),
+                  listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
                 ]
               }
             ),
             filteredList.map((e) => {
+              if (editingListId === e.id) {
+                return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "2px 0" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  MemberForm,
+                  {
+                    initial: e,
+                    isHead: e.isHead,
+                    onCancel: () => setEditingListId(null),
+                    onSave: (data) => {
+                      updateListEntry(e, data);
+                      setEditingListId(null);
+                    }
+                  }
+                ) }, e.id);
+              }
               const meta = STATUS_META[e.status];
               let note = "-";
               if (e.status === "\uBCD1\uAC00" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
               if (e.status === "\uCD9C\uC0B0\uD734\uAC00" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
               if (e.status === "\uACB0\uADFC") note = t(lang, "noteAbsent");
               const teamLabel = e.team === "\uBD80\uC11C\uC7A5" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
+              const canDelete = !e.isHead || e.headCountInFactory > 1;
               return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                 "div",
                 {
@@ -35758,7 +35907,22 @@
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.position }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: t(lang, "factoryLabel", e.factory) }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: note }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, { status: e.status }) })
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, { status: e.status }) }),
+                    listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, justifyContent: "flex-end" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: t(lang, "memberEditTitle"), onClick: () => setEditingListId(e.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
+                      canDelete && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        IconBtn,
+                        {
+                          title: t(lang, "memberDeleteTitle"),
+                          danger: true,
+                          onClick: () => {
+                            const msg = e.isHead ? t(lang, "confirmDeleteHead", e.name) : t(lang, "confirmDeleteMember");
+                            if (confirm(msg)) deleteListEntry(e);
+                          },
+                          children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" })
+                        }
+                      )
+                    ] })
                   ]
                 },
                 e.id
