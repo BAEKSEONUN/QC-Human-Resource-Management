@@ -34199,14 +34199,14 @@
     uploadExcel: { ko: "\uC5D1\uC140 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i l\xEAn Excel" },
     uploadModalTitle: { ko: "\uC5D1\uC140\uB85C \uBA85\uB2E8 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i danh s\xE1ch t\u1EEB Excel" },
     uploadTargetFactory: {
-      ko: "\uAE30\uBCF8 \uB4F1\uB85D \uACF5\uC7A5 (\uD30C\uC77C\uC5D0 \uACF5\uC7A5 \uC5F4\uC774 \uC5C6\uC744 \uB54C \uC0AC\uC6A9)",
-      vi: "Nh\xE0 m\xE1y m\u1EB7c \u0111\u1ECBnh (d\xF9ng khi t\u1EC7p kh\xF4ng c\xF3 c\u1ED9t nh\xE0 m\xE1y)"
+      ko: "\uAE30\uBCF8 \uB4F1\uB85D \uACF5\uC7A5 (\uC2DC\uD2B8\uBA85\xB7\uACF5\uC7A5 \uC5F4\uB85C \uAD6C\uBD84\uB418\uC9C0 \uC54A\uC744 \uB54C\uB9CC \uC0AC\uC6A9)",
+      vi: "Nh\xE0 m\xE1y m\u1EB7c \u0111\u1ECBnh (ch\u1EC9 d\xF9ng khi kh\xF4ng x\xE1c \u0111\u1ECBnh \u0111\u01B0\u1EE3c qua t\xEAn sheet ho\u1EB7c c\u1ED9t nh\xE0 m\xE1y)"
     },
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL) s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c."
+      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL) s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD \u0111\u01B0\u1EE3c d\xF9ng \u0111\u1EC3 t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -35168,17 +35168,53 @@
     }
     return null;
   }
+  function normalizeForMatch(s) {
+    return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
+  }
+  var FACTORY_TEXT_PATTERNS = {
+    1: ["x\u01B0\u1EDFng1", "xuong1", "1\uACF5\uC7A5", "factory1", "nh\xE0m\xE1y1", "nhamay1", "plant1"],
+    2: ["x\u01B0\u1EDFng2", "xuong2", "2\uACF5\uC7A5", "factory2", "nh\xE0m\xE1y2", "nhamay2", "plant2"]
+  };
+  function detectFactoryFromText(text) {
+    const norm = normalizeForMatch(text);
+    if (!norm) return null;
+    for (const [f, patterns] of Object.entries(FACTORY_TEXT_PATTERNS)) {
+      if (patterns.some((p) => norm.includes(p))) return Number(f);
+    }
+    return null;
+  }
   function normalizeFactoryValue(raw) {
+    const fromText = detectFactoryFromText(raw);
+    if (fromText) return fromText;
     const digits = String(raw ?? "").replace(/\D/g, "");
     if (digits === "1") return 1;
     if (digits === "2") return 2;
     return null;
   }
+  function detectSheetFactory(sheetName, rows) {
+    const fromName = detectFactoryFromText(sheetName);
+    if (fromName) return fromName;
+    for (let i = 0; i < Math.min(3, rows.length); i++) {
+      const found = detectFactoryFromText(rows[i].join(" "));
+      if (found) return found;
+    }
+    return null;
+  }
+  function findHeaderRow(rows, maxScan = 5) {
+    let best = { idx: 0, map: {}, count: -1 };
+    for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
+      const map = detectColumns(rows[i]);
+      const count = Object.keys(map).length;
+      if (count > best.count) best = { idx: i, map, count };
+    }
+    return best;
+  }
+  var xuongLabel = (n) => `X\u01B0\u1EDFng ${n}`;
   function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
     const { lang } = useLang();
     const [fileName, setFileName] = (0, import_react.useState)("");
     const [rows, setRows] = (0, import_react.useState)(null);
-    const [missingCols, setMissingCols] = (0, import_react.useState)(null);
+    const [sheetIssues, setSheetIssues] = (0, import_react.useState)([]);
     const [targetFactory, setTargetFactory] = (0, import_react.useState)(defaultFactory === 1 || defaultFactory === 2 ? defaultFactory : 1);
     const [result, setResult] = (0, import_react.useState)(null);
     const fileInputRef = (0, import_react.useRef)(null);
@@ -35189,51 +35225,55 @@
       setFileName(file.name);
       setResult(null);
       setRows(null);
-      setMissingCols(null);
+      setSheetIssues([]);
       const colLabel = { empNo: t(lang, "fieldEmpNo"), name: t(lang, "fieldName"), dept: t(lang, "fieldDept"), position: t(lang, "fieldPosition") };
       const buf = await file.arrayBuffer();
       const wb = readSync(buf, { type: "array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const raw = utils.sheet_to_json(sheet, { header: 1, defval: "" });
-      if (!raw.length) {
-        setRows([]);
-        return;
-      }
-      const header = raw[0];
-      const colMap = detectColumns(header);
-      const required = ["empNo", "name", "dept", "position"];
-      const missing = required.filter((k) => !(k in colMap));
-      if (missing.length) {
-        setMissingCols(missing.map((k) => colLabel[k]));
-        return;
-      }
-      const parsed = raw.slice(1).filter((r) => r.some((cell) => String(cell ?? "").trim() !== "")).map((r, i) => {
-        const empNo = String(r[colMap.empNo] ?? "").trim();
-        const name = String(r[colMap.name] ?? "").trim();
-        const deptRaw = String(r[colMap.dept] ?? "").trim();
-        const posRaw = String(r[colMap.position] ?? "").trim();
-        const dept = normalizeDeptValue(deptRaw);
-        const position = normalizePositionValue(posRaw);
-        const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
-        const reasons = [];
-        if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
-        if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
-        if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
-        if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
-        return {
-          rowNum: i + 2,
-          empNo,
-          name,
-          deptRaw,
-          dept,
-          posRaw,
-          position,
-          factory: rowFactory,
-          valid: reasons.length === 0,
-          reasons
-        };
+      const allParsed = [];
+      const issues = [];
+      wb.SheetNames.forEach((sheetName) => {
+        const sheet = wb.Sheets[sheetName];
+        const raw = utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (!raw.length) return;
+        const headerInfo = findHeaderRow(raw);
+        const required = ["empNo", "name", "dept", "position"];
+        const missing = required.filter((k) => !(k in headerInfo.map));
+        if (missing.length) {
+          issues.push({ sheetName, missing: missing.map((k) => colLabel[k]) });
+          return;
+        }
+        const colMap = headerInfo.map;
+        const sheetFactory = detectSheetFactory(sheetName, raw);
+        raw.slice(headerInfo.idx + 1).filter((r) => r.some((cell) => String(cell ?? "").trim() !== "")).forEach((r, i) => {
+          const empNo = String(r[colMap.empNo] ?? "").trim();
+          const name = String(r[colMap.name] ?? "").trim();
+          const deptRaw = String(r[colMap.dept] ?? "").trim();
+          const posRaw = String(r[colMap.position] ?? "").trim();
+          const dept = normalizeDeptValue(deptRaw);
+          const position = normalizePositionValue(posRaw);
+          const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
+          const reasons = [];
+          if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
+          if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
+          if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
+          if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
+          allParsed.push({
+            rowNum: headerInfo.idx + 2 + i,
+            sheetName,
+            empNo,
+            name,
+            deptRaw,
+            dept,
+            posRaw,
+            position,
+            factory: rowFactory || sheetFactory,
+            valid: reasons.length === 0,
+            reasons
+          });
+        });
       });
-      setRows(parsed);
+      setSheetIssues(issues);
+      setRows(allParsed);
     };
     const handleRegister = () => {
       let okCount = 0;
@@ -35324,8 +35364,8 @@
                         background: COLORS.card
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 1, children: t(lang, "factoryLabel", 1) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 2, children: t(lang, "factoryLabel", 2) })
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 1, children: xuongLabel(1) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 2, children: xuongLabel(2) })
                       ]
                     }
                   )
@@ -35359,7 +35399,12 @@
                     }
                   )
                 ] }),
-                missingCols && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.danger }, children: t(lang, "uploadColumnsNotFound", missingCols.join(", ")) }),
+                sheetIssues.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: sheetIssues.map((issue) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.danger }, children: [
+                  "[",
+                  issue.sheetName,
+                  "] ",
+                  t(lang, "uploadColumnsNotFound", issue.missing.join(", "))
+                ] }, issue.sheetName)) }),
                 rows && rows.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, color: COLORS.danger }, children: t(lang, "uploadEmptyFile") }),
                 rows && rows.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 10, fontSize: 12 }, children: [
@@ -35370,6 +35415,7 @@
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { border: `0.5px solid ${COLORS.border}`, borderRadius: 8, overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { maxHeight: 260, overflowY: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { style: { background: "#F4F4F0", position: "sticky", top: 0 }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "uploadColRow") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "colFactory") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "colEmpNo") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "fieldName") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "fieldDept") }),
@@ -35378,12 +35424,13 @@
                     ] }) }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: rows.map((r) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { style: { background: r.valid ? "transparent" : COLORS.dangerBg }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }, children: r.rowNum }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.factory ? r.valid ? COLORS.textPrimary : COLORS.danger : COLORS.danger }, children: r.factory ? xuongLabel(r.factory) : `${xuongLabel(targetFactory)} *` }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.empNo || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.name || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.dept || r.deptRaw || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.position || r.posRaw || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: COLORS.danger, fontWeight: 500 }, children: r.reasons.join(" \xB7 ") })
-                    ] }, r.rowNum)) })
+                    ] }, `${r.sheetName}-${r.rowNum}`)) })
                   ] }) }) })
                 ] }),
                 result && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: result.fail > 0 ? COLORS.warning : COLORS.success }, children: t(lang, "uploadResultDone", result.ok, result.fail) })

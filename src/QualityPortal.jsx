@@ -139,14 +139,14 @@ const DICT = {
   uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
   uploadModalTitle: { ko: "엑셀로 명단 업로드", vi: "Tải danh sách từ Excel" },
   uploadTargetFactory: {
-    ko: "기본 등록 공장 (파일에 공장 열이 없을 때 사용)",
-    vi: "Nhà máy mặc định (dùng khi tệp không có cột nhà máy)",
+    ko: "기본 등록 공장 (시트명·공장 열로 구분되지 않을 때만 사용)",
+    vi: "Nhà máy mặc định (chỉ dùng khi không xác định được qua tên sheet hoặc cột nhà máy)",
   },
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)인 경우 조직도에는 Inspector로 등록됩니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Chức vụ là IQC/PQC/OQC/OQC(SPL) sẽ được đăng ký là Inspector trong sơ đồ tổ chức.",
+    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)인 경우 조직도에는 Inspector로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Chức vụ là IQC/PQC/OQC/OQC(SPL) sẽ được đăng ký là Inspector. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ được dùng để tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -1218,18 +1218,69 @@ function normalizePositionValue(raw) {
   return null;
 }
 
+// 실제 업로드 파일은 시트 이름(또는 시트 안의 제목 셀)이 "Xưởng 1"/"Xưởng 2"
+// (베트남어로 "1공장"/"2공장")로 되어 있어, 이 표기로 어느 공장 시트인지
+// 인식한다. 정확히 일치하지 않아도 되도록 부분 포함으로 검사한다
+// (예: "Xưởng 1 - Danh sách" 도 인식됨).
+function normalizeForMatch(s) {
+  return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
+}
+const FACTORY_TEXT_PATTERNS = {
+  1: ["xưởng1", "xuong1", "1공장", "factory1", "nhàmáy1", "nhamay1", "plant1"],
+  2: ["xưởng2", "xuong2", "2공장", "factory2", "nhàmáy2", "nhamay2", "plant2"],
+};
+function detectFactoryFromText(text) {
+  const norm = normalizeForMatch(text);
+  if (!norm) return null;
+  for (const [f, patterns] of Object.entries(FACTORY_TEXT_PATTERNS)) {
+    if (patterns.some((p) => norm.includes(p))) return Number(f);
+  }
+  return null;
+}
+
 function normalizeFactoryValue(raw) {
+  const fromText = detectFactoryFromText(raw);
+  if (fromText) return fromText;
   const digits = String(raw ?? "").replace(/\D/g, "");
   if (digits === "1") return 1;
   if (digits === "2") return 2;
   return null;
 }
 
+// 시트 이름으로 먼저 공장을 판단하고, 못 찾으면 시트 상단 몇 줄(제목 행 등)의
+// 텍스트에서 "Xưởng 1"/"Xưởng 2" 표기를 찾아본다.
+function detectSheetFactory(sheetName, rows) {
+  const fromName = detectFactoryFromText(sheetName);
+  if (fromName) return fromName;
+  for (let i = 0; i < Math.min(3, rows.length); i++) {
+    const found = detectFactoryFromText(rows[i].join(" "));
+    if (found) return found;
+  }
+  return null;
+}
+
+// 시트 맨 위가 아니라 몇 줄 아래에 실제 열 헤더가 있을 수 있어(예: 위에
+// "Xưởng 1" 제목 행이 있는 경우), 처음 몇 줄 중 필수 열을 가장 많이
+// 인식하는 행을 헤더로 채택한다.
+function findHeaderRow(rows, maxScan = 5) {
+  let best = { idx: 0, map: {}, count: -1 };
+  for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
+    const map = detectColumns(rows[i]);
+    const count = Object.keys(map).length;
+    if (count > best.count) best = { idx: i, map, count };
+  }
+  return best;
+}
+
+// 엑셀 업로드 창 안에서는 앱 언어 설정과 무관하게 원본 파일과 동일하게
+// 항상 "Xưởng 1"/"Xưởng 2"로 표기해, 파일 속 시트 이름과 바로 대조할 수 있게 한다.
+const xuongLabel = (n) => `Xưởng ${n}`;
+
 function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
   const { lang } = useLang();
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
-  const [missingCols, setMissingCols] = useState(null);
+  const [sheetIssues, setSheetIssues] = useState([]);
   const [targetFactory, setTargetFactory] = useState(defaultFactory === 1 || defaultFactory === 2 ? defaultFactory : 1);
   const [result, setResult] = useState(null);
   const fileInputRef = useRef(null);
@@ -1237,66 +1288,76 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
   const validRows = rows ? rows.filter((r) => r.valid) : [];
   const invalidRows = rows ? rows.filter((r) => !r.valid) : [];
 
+  // 워크북 안의 모든 시트를 훑는다. 실제 파일은 첫 번째 시트가 Xưởng 1
+  // (1공장), 두 번째 시트가 Xưởng 2(2공장)인 구조라, 시트마다 소속 공장을
+  // 인식해 전체를 한 번에 등록할 수 있는 하나의 목록으로 합친다.
   const handleFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
     setResult(null);
     setRows(null);
-    setMissingCols(null);
+    setSheetIssues([]);
 
     const colLabel = { empNo: t(lang, "fieldEmpNo"), name: t(lang, "fieldName"), dept: t(lang, "fieldDept"), position: t(lang, "fieldPosition") };
 
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
-    if (!raw.length) {
-      setRows([]);
-      return;
-    }
+    const allParsed = [];
+    const issues = [];
 
-    const header = raw[0];
-    const colMap = detectColumns(header);
-    const required = ["empNo", "name", "dept", "position"];
-    const missing = required.filter((k) => !(k in colMap));
-    if (missing.length) {
-      setMissingCols(missing.map((k) => colLabel[k]));
-      return;
-    }
+    wb.SheetNames.forEach((sheetName) => {
+      const sheet = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      if (!raw.length) return;
 
-    const parsed = raw
-      .slice(1)
-      .filter((r) => r.some((cell) => String(cell ?? "").trim() !== ""))
-      .map((r, i) => {
-        const empNo = String(r[colMap.empNo] ?? "").trim();
-        const name = String(r[colMap.name] ?? "").trim();
-        const deptRaw = String(r[colMap.dept] ?? "").trim();
-        const posRaw = String(r[colMap.position] ?? "").trim();
-        const dept = normalizeDeptValue(deptRaw);
-        const position = normalizePositionValue(posRaw);
-        const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
+      const headerInfo = findHeaderRow(raw);
+      const required = ["empNo", "name", "dept", "position"];
+      const missing = required.filter((k) => !(k in headerInfo.map));
+      if (missing.length) {
+        issues.push({ sheetName, missing: missing.map((k) => colLabel[k]) });
+        return;
+      }
 
-        const reasons = [];
-        if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
-        if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
-        if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
-        if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
+      const colMap = headerInfo.map;
+      const sheetFactory = detectSheetFactory(sheetName, raw);
 
-        return {
-          rowNum: i + 2,
-          empNo,
-          name,
-          deptRaw,
-          dept,
-          posRaw,
-          position,
-          factory: rowFactory,
-          valid: reasons.length === 0,
-          reasons,
-        };
-      });
-    setRows(parsed);
+      raw
+        .slice(headerInfo.idx + 1)
+        .filter((r) => r.some((cell) => String(cell ?? "").trim() !== ""))
+        .forEach((r, i) => {
+          const empNo = String(r[colMap.empNo] ?? "").trim();
+          const name = String(r[colMap.name] ?? "").trim();
+          const deptRaw = String(r[colMap.dept] ?? "").trim();
+          const posRaw = String(r[colMap.position] ?? "").trim();
+          const dept = normalizeDeptValue(deptRaw);
+          const position = normalizePositionValue(posRaw);
+          const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
+
+          const reasons = [];
+          if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
+          if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
+          if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
+          if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
+
+          allParsed.push({
+            rowNum: headerInfo.idx + 2 + i,
+            sheetName,
+            empNo,
+            name,
+            deptRaw,
+            dept,
+            posRaw,
+            position,
+            factory: rowFactory || sheetFactory,
+            valid: reasons.length === 0,
+            reasons,
+          });
+        });
+    });
+
+    setSheetIssues(issues);
+    setRows(allParsed);
   };
 
   const handleRegister = () => {
@@ -1385,8 +1446,8 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
                 background: COLORS.card,
               }}
             >
-              <option value={1}>{t(lang, "factoryLabel", 1)}</option>
-              <option value={2}>{t(lang, "factoryLabel", 2)}</option>
+              <option value={1}>{xuongLabel(1)}</option>
+              <option value={2}>{xuongLabel(2)}</option>
             </select>
           </label>
 
@@ -1415,9 +1476,13 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
             />
           </div>
 
-          {missingCols && (
-            <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.danger }}>
-              {t(lang, "uploadColumnsNotFound", missingCols.join(", "))}
+          {sheetIssues.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {sheetIssues.map((issue) => (
+                <div key={issue.sheetName} style={{ fontSize: 13, fontWeight: 500, color: COLORS.danger }}>
+                  [{issue.sheetName}] {t(lang, "uploadColumnsNotFound", issue.missing.join(", "))}
+                </div>
+              ))}
             </div>
           )}
 
@@ -1441,6 +1506,7 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
                     <thead>
                       <tr style={{ background: "#F4F4F0", position: "sticky", top: 0 }}>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColRow")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colFactory")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colEmpNo")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldName")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldDept")}</th>
@@ -1450,8 +1516,11 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
                     </thead>
                     <tbody>
                       {rows.map((r) => (
-                        <tr key={r.rowNum} style={{ background: r.valid ? "transparent" : COLORS.dangerBg }}>
+                        <tr key={`${r.sheetName}-${r.rowNum}`} style={{ background: r.valid ? "transparent" : COLORS.dangerBg }}>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }}>{r.rowNum}</td>
+                          <td style={{ padding: "5px 8px", color: r.factory ? (r.valid ? COLORS.textPrimary : COLORS.danger) : COLORS.danger }}>
+                            {r.factory ? xuongLabel(r.factory) : `${xuongLabel(targetFactory)} *`}
+                          </td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.empNo || "-"}</td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.name || "-"}</td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.dept || r.deptRaw || "-"}</td>
