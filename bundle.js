@@ -34205,8 +34205,8 @@
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(IQC/PQC UNIT/PQC ASSY/OQC/RMA/\uCD1D\uAD04), \uC9C1\uAE09 \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (IQC/PQC UNIT/PQC ASSY/OQC/RMA/T\u1ED5ng h\u1EE3p), Ch\u1EE9c v\u1EE5."
+      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL) s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -35143,22 +35143,30 @@
     return map;
   }
   var DEPT_VALUE_ALIASES = {
-    \uCD1D\uAD04: ["\uCD1D\uAD04", "t\u1ED5ng h\u1EE3p", "tonghop", "overall", "general"]
+    \uCD1D\uAD04: ["\uCD1D\uAD04", "QC", "t\u1ED5ng h\u1EE3p", "tonghop", "overall", "general"],
+    "PQC UNIT": ["PQC"],
+    OQC: ["OQC(SPL)", "OQC SPL"]
   };
   function normalizeDeptValue(raw) {
-    const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-]/g, "");
+    const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
     if (!norm) return null;
     for (const dept of DEPARTMENTS) {
       const candidates = [dept, ...DEPT_VALUE_ALIASES[dept] || []];
-      if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-]/g, "") === norm)) return dept;
+      if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return dept;
     }
     return null;
   }
+  var POSITION_VALUE_ALIASES = {
+    Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL"]
+  };
   function normalizePositionValue(raw) {
-    const norm = String(raw ?? "").trim().toLowerCase().replace(/[\s_\-]/g, "");
+    const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
     if (!norm) return null;
-    const match = POSITIONS.find((p) => p.toLowerCase().replace(/[\s_\-]/g, "") === norm);
-    return match || null;
+    for (const p of POSITIONS) {
+      const candidates = [p, ...POSITION_VALUE_ALIASES[p] || []];
+      if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return p;
+    }
+    return null;
   }
   function normalizeFactoryValue(raw) {
     const digits = String(raw ?? "").replace(/\D/g, "");
@@ -35166,7 +35174,7 @@
     if (digits === "2") return 2;
     return null;
   }
-  function ExcelUploadModal({ setOrg, defaultFactory, onClose }) {
+  function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
     const { lang } = useLang();
     const [fileName, setFileName] = (0, import_react.useState)("");
     const [rows, setRows] = (0, import_react.useState)(null);
@@ -35253,6 +35261,7 @@
         return next;
       });
       setResult({ ok: okCount, fail: invalidRows.length + notFoundCount });
+      if (okCount > 0) onRegistered?.(okCount);
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "div",
@@ -35700,7 +35709,18 @@
           ] })
         ] })
       ] }),
-      showUpload && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExcelUploadModal, { setOrg, defaultFactory: factory, onClose: () => setShowUpload(false) })
+      showUpload && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        ExcelUploadModal,
+        {
+          setOrg,
+          defaultFactory: factory,
+          onClose: () => setShowUpload(false),
+          onRegistered: () => {
+            setShowUpload(false);
+            setTab("org");
+          }
+        }
+      )
     ] }) });
   }
 

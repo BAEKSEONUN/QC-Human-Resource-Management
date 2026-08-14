@@ -145,8 +145,8 @@ const DICT = {
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "사번, 성명, 부서(IQC/PQC UNIT/PQC ASSY/OQC/RMA/총괄), 직급 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (IQC/PQC UNIT/PQC ASSY/OQC/RMA/Tổng hợp), Chức vụ.",
+    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)인 경우 조직도에는 Inspector로 등록됩니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)). Chức vụ là IQC/PQC/OQC/OQC(SPL) sẽ được đăng ký là Inspector trong sơ đồ tổ chức.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -1183,24 +1183,39 @@ function detectColumns(headerRow) {
   return map;
 }
 
+// 실제 인사 자료의 "부서" 열에는 QC/PQC/OQC(SPL)처럼 조직도 팀 이름과
+// 정확히 일치하지 않는 값이 들어오는 경우가 있어, 아래 별칭들을 실제
+// 팀 이름으로 매핑해 인식한다. PQC(세부 구분 없음)는 PQC UNIT으로,
+// OQC(SPL)은 OQC로, QC(전체를 뜻함)는 총괄로 등록된다.
 const DEPT_VALUE_ALIASES = {
-  총괄: ["총괄", "tổng hợp", "tonghop", "overall", "general"],
+  총괄: ["총괄", "QC", "tổng hợp", "tonghop", "overall", "general"],
+  "PQC UNIT": ["PQC"],
+  OQC: ["OQC(SPL)", "OQC SPL"],
 };
 function normalizeDeptValue(raw) {
-  const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-]/g, "");
+  const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
   if (!norm) return null;
   for (const dept of DEPARTMENTS) {
     const candidates = [dept, ...(DEPT_VALUE_ALIASES[dept] || [])];
-    if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-]/g, "") === norm)) return dept;
+    if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return dept;
   }
   return null;
 }
 
+// 일부 인사 자료는 검사직 직원의 "직급" 열에 실제 직급 대신 소속 검사
+// 구역(IQC/PQC/OQC/OQC(SPL))을 적어두는 경우가 있다. 이런 값들은 모두
+// 조직도의 최하위 직급인 "Inspector"로 정규화해 등록한다.
+const POSITION_VALUE_ALIASES = {
+  Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL"],
+};
 function normalizePositionValue(raw) {
-  const norm = String(raw ?? "").trim().toLowerCase().replace(/[\s_\-]/g, "");
+  const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
   if (!norm) return null;
-  const match = POSITIONS.find((p) => p.toLowerCase().replace(/[\s_\-]/g, "") === norm);
-  return match || null;
+  for (const p of POSITIONS) {
+    const candidates = [p, ...(POSITION_VALUE_ALIASES[p] || [])];
+    if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return p;
+  }
+  return null;
 }
 
 function normalizeFactoryValue(raw) {
@@ -1210,7 +1225,7 @@ function normalizeFactoryValue(raw) {
   return null;
 }
 
-function ExcelUploadModal({ setOrg, defaultFactory, onClose }) {
+function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
   const { lang } = useLang();
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
@@ -1310,6 +1325,7 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose }) {
       return next;
     });
     setResult({ ok: okCount, fail: invalidRows.length + notFoundCount });
+    if (okCount > 0) onRegistered?.(okCount);
   };
 
   return (
@@ -1828,7 +1844,18 @@ export default function QualityPortal() {
           )}
         </div>
 
-        {showUpload && <ExcelUploadModal setOrg={setOrg} defaultFactory={factory} onClose={() => setShowUpload(false)} />}
+        {showUpload && (
+          <ExcelUploadModal
+            setOrg={setOrg}
+            defaultFactory={factory}
+            onClose={() => setShowUpload(false)}
+            onRegistered={() => {
+              // 등록된 인원을 바로 확인할 수 있도록 조직도 탭으로 자동 전환한다.
+              setShowUpload(false);
+              setTab("org");
+            }}
+          />
+        )}
       </div>
     </LangContext.Provider>
   );
