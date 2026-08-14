@@ -46,7 +46,8 @@ const ABSENCE_ORDER = ["결근", "병가", "출산휴가"];
 // 품질부서 산하 팀 (정렬 시 이 순서를 기준으로 그룹핑됨). PQC는 UNIT/ASSY로 분리.
 // "현지총괄관리자"는 부서장 직속 현지 총괄 관리자용 카드로, 다른 부서 카드와
 // 동일한 형식을 사용한다 (이름은 조직도에서 자유롭게 수정 가능).
-const DEPARTMENTS = ["현지총괄관리자", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
+// "QC"는 특정 팀 카드가 아니라 전체 명단 전용 소속이다 (qcMembers 참고).
+const DEPARTMENTS = ["현지총괄관리자", "QC", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
 // 부서장은 팀 소속이 아니므로 정렬상 최상단에 별도로 둔다
 const DEPT_ORDER = ["부서장", ...DEPARTMENTS];
 
@@ -161,8 +162,8 @@ const DICT = {
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
+    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 조직도 카드로는 등록되지 않고 전체 명단에만 소속 QC로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ không được thêm vào thẻ sơ đồ tổ chức mà chỉ hiển thị trong danh sách đầy đủ với bộ phận QC. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -188,6 +189,10 @@ const DICT = {
   uploadReasonPosition: {
     ko: (v) => `직급을 확인할 수 없음: "${v}"`,
     vi: (v) => `Không xác định được chức vụ: "${v}"`,
+  },
+  uploadReasonDuplicate: {
+    ko: (v) => `이미 등록된 사번(중복): "${v}"`,
+    vi: (v) => `Mã NV đã tồn tại (trùng lặp): "${v}"`,
   },
   uploadTeamNotFound: {
     ko: (dept) => `해당 공장에 "${dept}" 팀이 없음`,
@@ -222,7 +227,9 @@ function trHeadPosition(position, lang) {
 let idSeq = 1000;
 const nextId = () => idSeq++;
 
-// heads: 공장당 여러 명 둘 수 있는 품질부서장 목록
+// heads: 공장당 여러 명 둘 수 있는 품질부서장 목록.
+// qcMembers: 부서(bộ phận)가 "QC"로만 적혀 있어 특정 팀 카드에 넣을 수
+// 없는 인원 목록 — 조직도에는 표시되지 않고 전체 명단에만 "QC" 소속으로 나온다.
 const seedFactory = (factory, headsInfo, teamsSeed) => {
   const teams = teamsSeed.map((t) => ({
     id: nextId(),
@@ -230,7 +237,7 @@ const seedFactory = (factory, headsInfo, teamsSeed) => {
     members: t.members.map((m) => ({ id: nextId(), ...m, factory })),
   }));
   const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
-  return { heads, teams };
+  return { heads, teams, qcMembers: [] };
 };
 
 const initialOrg = {
@@ -331,6 +338,9 @@ function collectMaxId(org) {
       (t.members || []).forEach((m) => {
         if (m.id > max) max = m.id;
       });
+    });
+    (factoryData.qcMembers || []).forEach((m) => {
+      if (m.id > max) max = m.id;
     });
   });
   return max;
@@ -1368,7 +1378,7 @@ function findHeaderRow(rows, maxScan = 5) {
 // 항상 "Xưởng 1"/"Xưởng 2"로 표기해, 파일 속 시트 이름과 바로 대조할 수 있게 한다.
 const xuongLabel = (n) => `Xưởng ${n}`;
 
-function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
+function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }) {
   const { lang } = useLang();
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
@@ -1394,6 +1404,28 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
 
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
+
+    // 기존 등록된 사번(부서장/팀원/QC 소속 전원, 두 공장 모두)을 모아
+    // 업로드 파일 내 행과 대조해 중복 등록을 막는다.
+    const existingEmpNos = new Set();
+    [1, 2].forEach((f) => {
+      const d = org[f];
+      if (!d) return;
+      (d.heads || []).forEach((h) => {
+        if (h.empNo) existingEmpNos.add(String(h.empNo).trim().toUpperCase());
+      });
+      (d.teams || []).forEach((tm) =>
+        (tm.members || []).forEach((m) => {
+          if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+        })
+      );
+      (d.qcMembers || []).forEach((m) => {
+        if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+      });
+    });
+    // 파일 안에서 이미 등장한 사번(여러 시트에 걸쳐서도)을 추적해 파일
+    // 내부 중복도 잡아낸다.
+    const seenInFile = new Set();
 
     const allParsed = [];
     const issues = [];
@@ -1433,11 +1465,22 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
           }
           const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
 
+          const normEmpNo = empNo.toUpperCase();
+          let isDuplicate = false;
+          if (normEmpNo) {
+            if (existingEmpNos.has(normEmpNo) || seenInFile.has(normEmpNo)) {
+              isDuplicate = true;
+            } else {
+              seenInFile.add(normEmpNo);
+            }
+          }
+
           const reasons = [];
           if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
           if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
           if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
           if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
+          if (isDuplicate) reasons.push(t(lang, "uploadReasonDuplicate", empNo));
 
           allParsed.push({
             rowNum: headerInfo.idx + 2 + i,
@@ -1468,6 +1511,14 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
         const f = r.factory || targetFactory;
         const factoryData = next[f];
         if (!factoryData) return;
+        const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "출근", factory: f };
+        // bộ phận이 "QC"로만 적힌 인원은 특정 팀 카드에 넣지 않고 전체
+        // 명단 전용 qcMembers 목록에 등록한다 (조직도에는 표시되지 않음).
+        if (r.dept === "QC") {
+          next = { ...next, [f]: { ...factoryData, qcMembers: [...(factoryData.qcMembers || []), newMember] } };
+          okCount += 1;
+          return;
+        }
         const teamIdx = factoryData.teams.findIndex(
           (tm) => tm.title.trim().toUpperCase() === r.dept.toUpperCase() || tm.title === r.dept
         );
@@ -1475,7 +1526,6 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
           notFoundCount += 1;
           return;
         }
-        const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "출근", factory: f };
         const updatedTeams = factoryData.teams.map((tm, i) =>
           i === teamIdx ? { ...tm, members: [...tm.members, newMember] } : tm
         );
@@ -1715,6 +1765,7 @@ export default function QualityPortal() {
       d.teams.forEach((t) => {
         t.members.forEach((m) => list.push({ ...m, team: t.title, teamId: t.id }));
       });
+      (d.qcMembers || []).forEach((m) => list.push({ ...m, team: "QC", isQc: true }));
     });
     return list;
   }, [org]);
@@ -1760,6 +1811,15 @@ export default function QualityPortal() {
           [entry.factory]: { ...factoryData, heads: factoryData.heads.map((h) => (h.id === entry.id ? { ...h, ...data } : h)) },
         };
       }
+      if (entry.isQc) {
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            qcMembers: (factoryData.qcMembers || []).map((m) => (m.id === entry.id ? { ...m, ...data } : m)),
+          },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -1778,6 +1838,12 @@ export default function QualityPortal() {
       if (entry.isHead) {
         return { ...prev, [entry.factory]: { ...factoryData, heads: factoryData.heads.filter((h) => h.id !== entry.id) } };
       }
+      if (entry.isQc) {
+        return {
+          ...prev,
+          [entry.factory]: { ...factoryData, qcMembers: (factoryData.qcMembers || []).filter((m) => m.id !== entry.id) },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -1790,8 +1856,8 @@ export default function QualityPortal() {
     });
   };
 
-  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원 항목이 섞여
-  // 있어도 factory별로 heads와 members에서 각각 걸러낸다.
+  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원/QC 항목이 섞여
+  // 있어도 factory별로 heads·members·qcMembers에서 각각 걸러낸다.
   const deleteListEntries = (entries) => {
     const idSet = new Set(entries.map((e) => e.id));
     setOrg((prev) => {
@@ -1802,6 +1868,7 @@ export default function QualityPortal() {
           ...factoryData,
           heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
           teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) })),
+          qcMembers: (factoryData.qcMembers || []).filter((m) => !idSet.has(m.id)),
         };
       });
       return next;
@@ -1814,7 +1881,7 @@ export default function QualityPortal() {
     setOrg((prev) => {
       const next = {};
       [1, 2].forEach((f) => {
-        next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })) };
+        next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })), qcMembers: [] };
       });
       return next;
     });
@@ -2244,6 +2311,7 @@ export default function QualityPortal() {
 
         {showUpload && (
           <ExcelUploadModal
+            org={org}
             setOrg={setOrg}
             defaultFactory={factory}
             onClose={() => setShowUpload(false)}
