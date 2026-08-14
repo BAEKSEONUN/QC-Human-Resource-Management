@@ -7338,18 +7338,19 @@
   };
   var idSeq = 1e3;
   var nextId = () => idSeq++;
-  var seedFactory = (factory, headInfo, teamsSeed) => {
+  var seedFactory = (factory, headsInfo, teamsSeed) => {
     const teams = teamsSeed.map((t) => ({
       id: nextId(),
       title: t.title,
       members: t.members.map((m) => ({ id: nextId(), ...m, factory }))
     }));
-    return { head: { id: nextId(), ...headInfo, factory }, teams };
+    const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
+    return { heads, teams };
   };
   var initialOrg = {
     1: seedFactory(
       1,
-      { empNo: "Q1001", name: "\uD64D\uC131\uD6C8", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" },
+      [{ empNo: "Q1001", name: "\uD64D\uC131\uD6C8", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" }],
       [
         {
           title: "IQC",
@@ -7384,7 +7385,7 @@
     ),
     2: seedFactory(
       2,
-      { empNo: "Q2001", name: "\uC724\uD0DC\uC601", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" },
+      [{ empNo: "Q2001", name: "\uC724\uD0DC\uC601", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" }],
       [
         {
           title: "IQC",
@@ -7493,7 +7494,7 @@
   function MemberForm({ initial, isHead, onSave, onCancel }) {
     const [empNo, setEmpNo] = (0, import_react.useState)(initial?.empNo || "");
     const [name, setName] = (0, import_react.useState)(initial?.name || "");
-    const [position, setPosition] = (0, import_react.useState)(initial?.position || (isHead ? "" : POSITIONS[0]));
+    const [position, setPosition] = (0, import_react.useState)(initial?.position || (isHead ? "\uD488\uC9C8\uBD80\uC11C\uC7A5" : POSITIONS[0]));
     const submit = () => {
       if (!empNo.trim() || !name.trim() || !position.trim()) return;
       onSave({ empNo: empNo.trim(), name: name.trim(), position: position.trim() });
@@ -7566,223 +7567,384 @@
       }
     );
   }
-  function TeamCard({ team, onUpdateTitle, onDeleteTeam, onAddMember, onEditMember, onDeleteMember }) {
+  function groupByPosition(members) {
+    const groups = /* @__PURE__ */ new Map();
+    members.forEach((m) => {
+      if (!groups.has(m.position)) groups.set(m.position, []);
+      groups.get(m.position).push(m);
+    });
+    return [...groups.entries()].sort((a, b) => positionRank(b[0]) - positionRank(a[0]));
+  }
+  function TeamCard({
+    team,
+    onUpdateTitle,
+    onDeleteTeam,
+    onAddMember,
+    onEditMember,
+    onDeleteMember,
+    draggable,
+    isDragOver,
+    onDragStart,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+    onDragEnd
+  }) {
     const [editingTitle, setEditingTitle] = (0, import_react.useState)(false);
     const [titleDraft, setTitleDraft] = (0, import_react.useState)(team.title);
     const [addingMember, setAddingMember] = (0, import_react.useState)(false);
     const [editingMemberId, setEditingMemberId] = (0, import_react.useState)(null);
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 168 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 16, background: COLORS.borderStrong } }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-        "div",
-        {
-          style: {
-            width: "100%",
-            border: `0.5px solid ${COLORS.border}`,
-            borderRadius: 10,
-            overflow: "hidden",
-            background: COLORS.card
-          },
-          children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "div",
-              {
-                style: {
-                  background: COLORS.headMid,
-                  color: "#fff",
-                  padding: "8px 10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 6
-                },
-                children: [
-                  editingTitle ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "input",
-                    {
-                      value: titleDraft,
-                      onChange: (e) => setTitleDraft(e.target.value),
-                      onBlur: () => {
-                        onUpdateTitle(titleDraft.trim() || team.title);
-                        setEditingTitle(false);
-                      },
-                      onKeyDown: (e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                      },
-                      autoFocus: true,
-                      style: {
-                        fontSize: 13,
-                        fontWeight: 500,
-                        background: "rgba(255,255,255,0.15)",
-                        border: "none",
-                        borderRadius: 4,
-                        color: "#fff",
-                        padding: "2px 6px",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        minWidth: 0
-                      }
-                    }
-                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 13, fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis" }, onClick: () => setEditingTitle(true), children: team.title }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        onClick: () => setEditingTitle(true),
-                        title: "\uD300 \uC774\uB984 \uC218\uC815",
-                        style: { background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 },
-                        children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" })
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        onClick: onDeleteTeam,
-                        title: "\uD300 \uC0AD\uC81C",
-                        style: { background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 },
-                        children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" })
-                      }
-                    )
-                  ] })
-                ]
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", gap: 6 }, children: [
-              team.members.map(
-                (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  MemberForm,
-                  {
-                    initial: m,
-                    onCancel: () => setEditingMemberId(null),
-                    onSave: (data) => {
-                      onEditMember(m.id, data);
-                      setEditingMemberId(null);
-                    }
-                  },
-                  m.id
-                ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    const grouped = groupByPosition(team.members);
+    const renderMemberRow = (m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 8px",
+          borderRadius: 6,
+          background: "#F4F4F0",
+          borderLeft: `3px solid ${COLORS.teal}`
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: m.empNo }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: m.name })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC218\uC815", onClick: () => setEditingMemberId(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC0AD\uC81C", danger: true, onClick: () => onDeleteMember(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" }) })
+          ] })
+        ]
+      },
+      m.id
+    );
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+      "div",
+      {
+        draggable,
+        onDragStart,
+        onDragOver,
+        onDragLeave,
+        onDrop,
+        onDragEnd,
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          flex: "1 1 0",
+          minWidth: 168,
+          opacity: isDragOver ? 0.6 : 1
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 16, background: COLORS.borderStrong } }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "div",
+            {
+              style: {
+                width: "100%",
+                border: `0.5px solid ${isDragOver ? COLORS.teal : COLORS.border}`,
+                borderRadius: 10,
+                overflow: "hidden",
+                background: COLORS.card
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                   "div",
                   {
+                    title: "\uB4DC\uB798\uADF8\uD558\uC5EC \uD300 \uC21C\uC11C \uBCC0\uACBD",
                     style: {
+                      background: COLORS.headMid,
+                      color: "#fff",
+                      padding: "8px 10px",
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      background: "#F4F4F0",
-                      borderLeft: `3px solid ${COLORS.teal}`
+                      justifyContent: "space-between",
+                      gap: 6,
+                      cursor: draggable ? "grab" : "default"
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: [
-                          m.empNo,
-                          " \xB7 ",
-                          m.position
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: m.name })
-                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
+                      editingTitle ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "input",
+                        {
+                          value: titleDraft,
+                          onChange: (e) => setTitleDraft(e.target.value),
+                          onBlur: () => {
+                            onUpdateTitle(titleDraft.trim() || team.title);
+                            setEditingTitle(false);
+                          },
+                          onKeyDown: (e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                          },
+                          autoFocus: true,
+                          style: {
+                            fontSize: 13,
+                            fontWeight: 500,
+                            background: "rgba(255,255,255,0.15)",
+                            border: "none",
+                            borderRadius: 4,
+                            color: "#fff",
+                            padding: "2px 6px",
+                            width: "100%",
+                            boxSizing: "border-box",
+                            minWidth: 0
+                          }
+                        }
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 13, fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis" }, onClick: () => setEditingTitle(true), children: team.title }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC218\uC815", onClick: () => setEditingMemberId(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: "\uC0AD\uC81C", danger: true, onClick: () => onDeleteMember(m.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" }) })
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "button",
+                          {
+                            onClick: () => setEditingTitle(true),
+                            title: "\uD300 \uC774\uB984 \uC218\uC815",
+                            style: { background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 },
+                            children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" })
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "button",
+                          {
+                            onClick: onDeleteTeam,
+                            title: "\uD300 \uC0AD\uC81C",
+                            style: { background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 },
+                            children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u{1F5D1}" })
+                          }
+                        )
                       ] })
                     ]
-                  },
-                  m.id
-                )
-              ),
-              addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                MemberForm,
-                {
-                  onCancel: () => setAddingMember(false),
-                  onSave: (data) => {
-                    onAddMember(data);
-                    setAddingMember(false);
                   }
-                }
-              ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  onClick: () => setAddingMember(true),
-                  style: {
-                    fontSize: 12,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: `0.5px dashed ${COLORS.borderStrong}`,
-                    background: "transparent",
-                    color: COLORS.textSecondary,
-                    cursor: "pointer",
-                    width: "100%",
-                    boxSizing: "border-box"
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
-                    "\uD300\uC6D0 \uCD94\uAC00"
-                  ]
-                }
-              )
-            ] })
-          ]
-        }
-      )
-    ] });
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 8, display: "flex", flexDirection: "column", gap: 8 }, children: [
+                  grouped.map(([position, members]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "div",
+                    {
+                      style: {
+                        border: `0.5px solid ${COLORS.border}`,
+                        borderRadius: 8,
+                        padding: 6,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        background: "#FBFBF9"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }, children: position }),
+                        members.map(
+                          (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                            MemberForm,
+                            {
+                              initial: m,
+                              onCancel: () => setEditingMemberId(null),
+                              onSave: (data) => {
+                                onEditMember(m.id, data);
+                                setEditingMemberId(null);
+                              }
+                            },
+                            m.id
+                          ) : renderMemberRow(m)
+                        )
+                      ]
+                    },
+                    position
+                  )),
+                  addingMember ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    MemberForm,
+                    {
+                      onCancel: () => setAddingMember(false),
+                      onSave: (data) => {
+                        onAddMember(data);
+                        setAddingMember(false);
+                      }
+                    }
+                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      onClick: () => setAddingMember(true),
+                      style: {
+                        fontSize: 12,
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        border: `0.5px dashed ${COLORS.borderStrong}`,
+                        background: "transparent",
+                        color: COLORS.textSecondary,
+                        cursor: "pointer",
+                        width: "100%",
+                        boxSizing: "border-box"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
+                        "\uD300\uC6D0 \uCD94\uAC00"
+                      ]
+                    }
+                  )
+                ] })
+              ]
+            }
+          )
+        ]
+      }
+    );
   }
   function OrgChart({ factory, data, setOrg }) {
-    const [editingHead, setEditingHead] = (0, import_react.useState)(false);
+    const [editingHeadId, setEditingHeadId] = (0, import_react.useState)(null);
+    const [addingHead, setAddingHead] = (0, import_react.useState)(false);
+    const [dragIndex, setDragIndex] = (0, import_react.useState)(null);
+    const [overIndex, setOverIndex] = (0, import_react.useState)(null);
     const updateTeams = (updater) => {
       setOrg((prev) => ({
         ...prev,
         [factory]: { ...prev[factory], teams: updater(prev[factory].teams) }
       }));
     };
+    const updateHeads = (updater) => {
+      setOrg((prev) => ({
+        ...prev,
+        [factory]: { ...prev[factory], heads: updater(prev[factory].heads) }
+      }));
+    };
     const addTeam = () => {
       updateTeams((teams) => [...teams, { id: nextId(), title: "\uC0C8 \uD300", members: [] }]);
     };
+    const moveTeam = (fromIdx, toIdx) => {
+      updateTeams((teams) => {
+        if (fromIdx === toIdx || fromIdx == null || toIdx == null) return teams;
+        const next = [...teams];
+        const [moved] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, moved);
+        return next;
+      });
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
-      editingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        MemberForm,
-        {
-          initial: data.head,
-          isHead: true,
-          onCancel: () => setEditingHead(false),
-          onSave: (d) => {
-            setOrg((prev) => ({ ...prev, [factory]: { ...prev[factory], head: { ...prev[factory].head, ...d } } }));
-            setEditingHead(false);
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }, children: [
+        data.heads.map(
+          (h) => editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            MemberForm,
+            {
+              initial: h,
+              isHead: true,
+              onCancel: () => setEditingHeadId(null),
+              onSave: (d) => {
+                updateHeads((heads) => heads.map((x) => x.id === h.id ? { ...x, ...d } : x));
+                setEditingHeadId(null);
+              }
+            }
+          ) }, h.id) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                onClick: () => setEditingHeadId(h.id),
+                title: "\uD074\uB9AD\uD558\uC5EC \uC218\uC815",
+                style: {
+                  background: COLORS.headDark,
+                  color: "#fff",
+                  borderRadius: 999,
+                  padding: "10px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  minWidth: 180
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 14, fontWeight: 500 }, children: h.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, opacity: 0.8 }, children: [
+                    h.position,
+                    " \xB7 ",
+                    h.empNo
+                  ] })
+                ]
+              }
+            ),
+            data.heads.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                onClick: () => {
+                  if (confirm(`"${h.name}" \uBD80\uC11C\uC7A5\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`)) {
+                    updateHeads((heads) => heads.filter((x) => x.id !== h.id));
+                  }
+                },
+                title: "\uBD80\uC11C\uC7A5 \uC0AD\uC81C",
+                style: {
+                  position: "absolute",
+                  top: -6,
+                  right: -6,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: `0.5px solid ${COLORS.border}`,
+                  background: COLORS.card,
+                  color: COLORS.danger,
+                  fontSize: 10,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                },
+                children: "\u2715"
+              }
+            )
+          ] }, h.id)
+        ),
+        addingHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          MemberForm,
+          {
+            isHead: true,
+            onCancel: () => setAddingHead(false),
+            onSave: (d) => {
+              updateHeads((heads) => [...heads, { id: nextId(), ...d, factory }]);
+              setAddingHead(false);
+            }
           }
-        }
-      ) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-        "div",
-        {
-          onClick: () => setEditingHead(true),
-          title: "\uD074\uB9AD\uD558\uC5EC \uC218\uC815",
-          style: {
-            background: COLORS.headDark,
-            color: "#fff",
-            borderRadius: 999,
-            padding: "10px 22px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            cursor: "pointer",
-            minWidth: 180
-          },
-          children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 14, fontWeight: 500 }, children: data.head.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, opacity: 0.8 }, children: [
-              data.head.position,
-              " \xB7 ",
-              data.head.empNo
-            ] })
-          ]
-        }
-      ),
+        ) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          "button",
+          {
+            onClick: () => setAddingHead(true),
+            style: {
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: `1px dashed ${COLORS.borderStrong}`,
+              background: "transparent",
+              color: COLORS.textSecondary,
+              fontSize: 13,
+              cursor: "pointer",
+              minWidth: 140
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
+              "\uBD80\uC11C\uC7A5 \uCD94\uAC00"
+            ]
+          }
+        )
+      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 18, background: COLORS.borderStrong } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", borderTop: `2px solid ${COLORS.borderStrong}`, marginTop: 0 } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 14, width: "100%", marginTop: 0, alignItems: "flex-start" }, children: [
-        data.teams.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        data.teams.map((team, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           TeamCard,
           {
             team,
+            draggable: true,
+            isDragOver: overIndex === idx && dragIndex !== idx,
+            onDragStart: () => setDragIndex(idx),
+            onDragOver: (e) => {
+              e.preventDefault();
+              if (overIndex !== idx) setOverIndex(idx);
+            },
+            onDragLeave: () => setOverIndex((cur) => cur === idx ? null : cur),
+            onDrop: (e) => {
+              e.preventDefault();
+              moveTeam(dragIndex, idx);
+              setDragIndex(null);
+              setOverIndex(null);
+            },
+            onDragEnd: () => {
+              setDragIndex(null);
+              setOverIndex(null);
+            },
             onUpdateTitle: (title) => updateTeams((teams) => teams.map((t) => t.id === team.id ? { ...t, title } : t)),
             onDeleteTeam: () => {
               if (confirm(`"${team.title}" \uD300\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uC18C\uC18D \uD300\uC6D0\uB3C4 \uD568\uAED8 \uC0AD\uC81C\uB429\uB2C8\uB2E4.`)) {
@@ -7845,7 +8007,7 @@
       const list = [];
       [1, 2].forEach((f) => {
         const d = org[f];
-        list.push({ ...d.head, team: "\uBD80\uC11C\uC7A5", isHead: true, status: "\uCD9C\uADFC" });
+        d.heads.forEach((h) => list.push({ ...h, team: "\uBD80\uC11C\uC7A5", isHead: true, status: "\uCD9C\uADFC" }));
         d.teams.forEach((t) => {
           t.members.forEach((m) => list.push({ ...m, team: t.title }));
         });
@@ -7910,7 +8072,7 @@
       }
     );
     const LIST_GRID_COLUMNS = "90px 1fr 130px 70px 1.2fr 110px";
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { maxWidth: 1080, margin: "0 auto", padding: "20px 20px 40px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { maxWidth: 1400, margin: "0 auto", padding: "20px 20px 40px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 500, color: COLORS.textPrimary }, children: "\uD488\uC9C8\uBD80\uC11C \uC778\uB825 \uD604\uD669 \uD3EC\uD138" }),

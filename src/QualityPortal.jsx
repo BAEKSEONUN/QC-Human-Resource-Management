@@ -72,19 +72,21 @@ const todayStr = () => {
 let idSeq = 1000;
 const nextId = () => idSeq++;
 
-const seedFactory = (factory, headInfo, teamsSeed) => {
+// heads: 공장당 여러 명 둘 수 있는 품질부서장 목록
+const seedFactory = (factory, headsInfo, teamsSeed) => {
   const teams = teamsSeed.map((t) => ({
     id: nextId(),
     title: t.title,
     members: t.members.map((m) => ({ id: nextId(), ...m, factory })),
   }));
-  return { head: { id: nextId(), ...headInfo, factory }, teams };
+  const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
+  return { heads, teams };
 };
 
 const initialOrg = {
   1: seedFactory(
     1,
-    { empNo: "Q1001", name: "홍성훈", position: "품질부서장" },
+    [{ empNo: "Q1001", name: "홍성훈", position: "품질부서장" }],
     [
       {
         title: "IQC",
@@ -119,7 +121,7 @@ const initialOrg = {
   ),
   2: seedFactory(
     2,
-    { empNo: "Q2001", name: "윤태영", position: "품질부서장" },
+    [{ empNo: "Q2001", name: "윤태영", position: "품질부서장" }],
     [
       {
         title: "IQC",
@@ -244,7 +246,7 @@ function TextField({ label, value, onChange, placeholder, style, children }) {
 function MemberForm({ initial, isHead, onSave, onCancel }) {
   const [empNo, setEmpNo] = useState(initial?.empNo || "");
   const [name, setName] = useState(initial?.name || "");
-  const [position, setPosition] = useState(initial?.position || (isHead ? "" : POSITIONS[0]));
+  const [position, setPosition] = useState(initial?.position || (isHead ? "품질부서장" : POSITIONS[0]));
 
   const submit = () => {
     if (!empNo.trim() || !name.trim() || !position.trim()) return;
@@ -322,28 +324,102 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
   );
 }
 
+// 팀원을 직급별로 묶어 [직급, 팀원목록] 쌍의 배열로 반환한다 (서열 높은 직급 먼저)
+function groupByPosition(members) {
+  const groups = new Map();
+  members.forEach((m) => {
+    if (!groups.has(m.position)) groups.set(m.position, []);
+    groups.get(m.position).push(m);
+  });
+  return [...groups.entries()].sort((a, b) => positionRank(b[0]) - positionRank(a[0]));
+}
+
 // ---------- 조직도 팀 카드 ----------
-function TeamCard({ team, onUpdateTitle, onDeleteTeam, onAddMember, onEditMember, onDeleteMember }) {
+// 같은 부서(팀) 안에서도 직급별로 칸을 나눠 보여준다. 부서 전체는 기존처럼
+// 위쪽 연결선 하나로 조직도에 연결되고, 그 안에서 직급 단위로 소분류된다.
+// draggable/onDragStart 등은 부모(OrgChart)가 팀 카드 좌우 순서를
+// 드래그로 바꿀 수 있도록 전달하는 핸들러다.
+function TeamCard({
+  team,
+  onUpdateTitle,
+  onDeleteTeam,
+  onAddMember,
+  onEditMember,
+  onDeleteMember,
+  draggable,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
+}) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(team.title);
   const [addingMember, setAddingMember] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState(null);
 
+  const grouped = groupByPosition(team.members);
+
+  const renderMemberRow = (m) => (
+    <div
+      key={m.id}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 8px",
+        borderRadius: 6,
+        background: "#F4F4F0",
+        borderLeft: `3px solid ${COLORS.teal}`,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: COLORS.textMuted }}>{m.empNo}</div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{m.name}</div>
+      </div>
+      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        <IconBtn title="수정" onClick={() => setEditingMemberId(m.id)}>
+          <span aria-hidden="true">✎</span>
+        </IconBtn>
+        <IconBtn title="삭제" danger onClick={() => onDeleteMember(m.id)}>
+          <span aria-hidden="true">🗑</span>
+        </IconBtn>
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 168 }}>
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        flex: "1 1 0",
+        minWidth: 168,
+        opacity: isDragOver ? 0.6 : 1,
+      }}
+    >
       {/* 수직 연결선 */}
       <div style={{ width: 1, height: 16, background: COLORS.borderStrong }} />
 
       <div
         style={{
           width: "100%",
-          border: `0.5px solid ${COLORS.border}`,
+          border: `0.5px solid ${isDragOver ? COLORS.teal : COLORS.border}`,
           borderRadius: 10,
           overflow: "hidden",
           background: COLORS.card,
         }}
       >
         <div
+          title="드래그하여 팀 순서 변경"
           style={{
             background: COLORS.headMid,
             color: "#fff",
@@ -352,8 +428,12 @@ function TeamCard({ team, onUpdateTitle, onDeleteTeam, onAddMember, onEditMember
             alignItems: "center",
             justifyContent: "space-between",
             gap: 6,
+            cursor: draggable ? "grab" : "default",
           }}
         >
+          <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12, flexShrink: 0 }}>
+            ⠿
+          </span>
           {editingTitle ? (
             <input
               value={titleDraft}
@@ -402,48 +482,40 @@ function TeamCard({ team, onUpdateTitle, onDeleteTeam, onAddMember, onEditMember
           </div>
         </div>
 
-        <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-          {team.members.map((m) =>
-            editingMemberId === m.id ? (
-              <MemberForm
-                key={m.id}
-                initial={m}
-                onCancel={() => setEditingMemberId(null)}
-                onSave={(data) => {
-                  onEditMember(m.id, data);
-                  setEditingMemberId(null);
-                }}
-              />
-            ) : (
-              <div
-                key={m.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  background: "#F4F4F0",
-                  borderLeft: `3px solid ${COLORS.teal}`,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: COLORS.textMuted }}>
-                    {m.empNo} · {m.position}
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{m.name}</div>
-                </div>
-                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                  <IconBtn title="수정" onClick={() => setEditingMemberId(m.id)}>
-                    <span aria-hidden="true">✎</span>
-                  </IconBtn>
-                  <IconBtn title="삭제" danger onClick={() => onDeleteMember(m.id)}>
-                    <span aria-hidden="true">🗑</span>
-                  </IconBtn>
-                </div>
+        <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+          {grouped.map(([position, members]) => (
+            <div
+              key={position}
+              style={{
+                border: `0.5px solid ${COLORS.border}`,
+                borderRadius: 8,
+                padding: 6,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                background: "#FBFBF9",
+              }}
+            >
+              <div style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMuted, letterSpacing: 0.3, padding: "0 2px" }}>
+                {position}
               </div>
-            )
-          )}
+              {members.map((m) =>
+                editingMemberId === m.id ? (
+                  <MemberForm
+                    key={m.id}
+                    initial={m}
+                    onCancel={() => setEditingMemberId(null)}
+                    onSave={(data) => {
+                      onEditMember(m.id, data);
+                      setEditingMemberId(null);
+                    }}
+                  />
+                ) : (
+                  renderMemberRow(m)
+                )
+              )}
+            </div>
+          ))}
 
           {addingMember ? (
             <MemberForm
@@ -480,7 +552,10 @@ function TeamCard({ team, onUpdateTitle, onDeleteTeam, onAddMember, onEditMember
 
 // ---------- 조직도 (공장 1개) ----------
 function OrgChart({ factory, data, setOrg }) {
-  const [editingHead, setEditingHead] = useState(false);
+  const [editingHeadId, setEditingHeadId] = useState(null);
+  const [addingHead, setAddingHead] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
 
   const updateTeams = (updater) => {
     setOrg((prev) => ({
@@ -489,46 +564,128 @@ function OrgChart({ factory, data, setOrg }) {
     }));
   };
 
+  const updateHeads = (updater) => {
+    setOrg((prev) => ({
+      ...prev,
+      [factory]: { ...prev[factory], heads: updater(prev[factory].heads) },
+    }));
+  };
+
   const addTeam = () => {
     updateTeams((teams) => [...teams, { id: nextId(), title: "새 팀", members: [] }]);
   };
 
+  const moveTeam = (fromIdx, toIdx) => {
+    updateTeams((teams) => {
+      if (fromIdx === toIdx || fromIdx == null || toIdx == null) return teams;
+      const next = [...teams];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }}>
-      {editingHead ? (
-        <div style={{ width: 260, maxWidth: "100%" }}>
-          <MemberForm
-            initial={data.head}
-            isHead
-            onCancel={() => setEditingHead(false)}
-            onSave={(d) => {
-              setOrg((prev) => ({ ...prev, [factory]: { ...prev[factory], head: { ...prev[factory].head, ...d } } }));
-              setEditingHead(false);
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+        {data.heads.map((h) =>
+          editingHeadId === h.id ? (
+            <div key={h.id} style={{ width: 260, maxWidth: "100%" }}>
+              <MemberForm
+                initial={h}
+                isHead
+                onCancel={() => setEditingHeadId(null)}
+                onSave={(d) => {
+                  updateHeads((heads) => heads.map((x) => (x.id === h.id ? { ...x, ...d } : x)));
+                  setEditingHeadId(null);
+                }}
+              />
+            </div>
+          ) : (
+            <div key={h.id} style={{ position: "relative" }}>
+              <div
+                onClick={() => setEditingHeadId(h.id)}
+                title="클릭하여 수정"
+                style={{
+                  background: COLORS.headDark,
+                  color: "#fff",
+                  borderRadius: 999,
+                  padding: "10px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  minWidth: 180,
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 500 }}>{h.name}</span>
+                <span style={{ fontSize: 11, opacity: 0.8 }}>
+                  {h.position} · {h.empNo}
+                </span>
+              </div>
+              {data.heads.length > 1 && (
+                <button
+                  onClick={() => {
+                    if (confirm(`"${h.name}" 부서장을 삭제할까요?`)) {
+                      updateHeads((heads) => heads.filter((x) => x.id !== h.id));
+                    }
+                  }}
+                  title="부서장 삭제"
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    border: `0.5px solid ${COLORS.border}`,
+                    background: COLORS.card,
+                    color: COLORS.danger,
+                    fontSize: 10,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )
+        )}
+
+        {addingHead ? (
+          <div style={{ width: 260, maxWidth: "100%" }}>
+            <MemberForm
+              isHead
+              onCancel={() => setAddingHead(false)}
+              onSave={(d) => {
+                updateHeads((heads) => [...heads, { id: nextId(), ...d, factory }]);
+                setAddingHead(false);
+              }}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => setAddingHead(true)}
+            style={{
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: `1px dashed ${COLORS.borderStrong}`,
+              background: "transparent",
+              color: COLORS.textSecondary,
+              fontSize: 13,
+              cursor: "pointer",
+              minWidth: 140,
             }}
-          />
-        </div>
-      ) : (
-        <div
-          onClick={() => setEditingHead(true)}
-          title="클릭하여 수정"
-          style={{
-            background: COLORS.headDark,
-            color: "#fff",
-            borderRadius: 999,
-            padding: "10px 22px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            cursor: "pointer",
-            minWidth: 180,
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{data.head.name}</span>
-          <span style={{ fontSize: 11, opacity: 0.8 }}>
-            {data.head.position} · {data.head.empNo}
-          </span>
-        </div>
-      )}
+          >
+            <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
+            부서장 추가
+          </button>
+        )}
+      </div>
 
       <div style={{ width: 1, height: 18, background: COLORS.borderStrong }} />
       <div style={{ width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page }} />
@@ -536,10 +693,28 @@ function OrgChart({ factory, data, setOrg }) {
       <div style={{ width: "100%", borderTop: `2px solid ${COLORS.borderStrong}`, marginTop: 0 }} />
 
       <div style={{ display: "flex", gap: 14, width: "100%", marginTop: 0, alignItems: "flex-start" }}>
-        {data.teams.map((team) => (
+        {data.teams.map((team, idx) => (
           <TeamCard
             key={team.id}
             team={team}
+            draggable
+            isDragOver={overIndex === idx && dragIndex !== idx}
+            onDragStart={() => setDragIndex(idx)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (overIndex !== idx) setOverIndex(idx);
+            }}
+            onDragLeave={() => setOverIndex((cur) => (cur === idx ? null : cur))}
+            onDrop={(e) => {
+              e.preventDefault();
+              moveTeam(dragIndex, idx);
+              setDragIndex(null);
+              setOverIndex(null);
+            }}
+            onDragEnd={() => {
+              setDragIndex(null);
+              setOverIndex(null);
+            }}
             onUpdateTitle={(title) =>
               updateTeams((teams) => teams.map((t) => (t.id === team.id ? { ...t, title } : t)))
             }
@@ -612,7 +787,7 @@ export default function QualityPortal() {
     const list = [];
     [1, 2].forEach((f) => {
       const d = org[f];
-      list.push({ ...d.head, team: "부서장", isHead: true, status: "출근" });
+      d.heads.forEach((h) => list.push({ ...h, team: "부서장", isHead: true, status: "출근" }));
       d.teams.forEach((t) => {
         t.members.forEach((m) => list.push({ ...m, team: t.title }));
       });
@@ -696,7 +871,7 @@ export default function QualityPortal() {
 
   return (
     <div style={{ background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 20px 40px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 20px 40px" }}>
         {/* 헤더 */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
