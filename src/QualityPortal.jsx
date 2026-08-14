@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // ---------- 색상 토큰 ----------
 const COLORS = {
@@ -159,6 +159,43 @@ const initialOrg = {
     ]
   ),
 };
+
+// ---------- 저장(로컬 저장소) ----------
+// 브라우저에 조직도 변경 내용을 저장해 새로고침/재접속 후에도 유지되게 한다.
+// package.json 등 프로젝트 설정 파일과는 무관하며, 오직 이 브라우저의
+// localStorage에만 저장된다(다른 기기·다른 브라우저와는 공유되지 않음).
+const STORAGE_KEY = "qualityPortal.org.v1";
+
+// 저장된 데이터에 이미 쓰인 id보다 새로 만들 id가 작아 충돌하지 않도록,
+// 불러온 데이터 안의 모든 id 중 최댓값을 찾아 idSeq를 그 이후로 맞춘다.
+function collectMaxId(org) {
+  let max = 0;
+  Object.values(org).forEach((factoryData) => {
+    (factoryData.heads || []).forEach((h) => {
+      if (h.id > max) max = h.id;
+    });
+    (factoryData.teams || []).forEach((t) => {
+      if (t.id > max) max = t.id;
+      (t.members || []).forEach((m) => {
+        if (m.id > max) max = m.id;
+      });
+    });
+  });
+  return max;
+}
+
+function loadInitialOrg() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialOrg;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
+    idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
+    return parsed;
+  } catch {
+    return initialOrg;
+  }
+}
 
 // ---------- 공용 UI 조각 ----------
 function Badge({ status }) {
@@ -925,11 +962,31 @@ function FactoryOrgPanel({ factory, data, setOrg }) {
 
 // ---------- 메인 앱 ----------
 export default function QualityPortal() {
-  const [org, setOrg] = useState(initialOrg);
+  const [org, setOrg] = useState(loadInitialOrg);
   const [tab, setTab] = useState("dashboard");
   const [factory, setFactory] = useState("all");
   const [statusFilter, setStatusFilter] = useState("전체");
   const [search, setSearch] = useState("");
+
+  // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
+    } catch {
+      // 저장소를 쓸 수 없는 환경(프라이빗 모드 등)이면 조용히 무시하고 메모리상 상태만 유지
+    }
+  }, [org]);
+
+  const resetOrg = () => {
+    if (confirm("저장된 변경 내용을 모두 지우고 기본 데이터로 되돌릴까요?")) {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // 저장소를 쓸 수 없는 환경이면 무시
+      }
+      setOrg(initialOrg);
+    }
+  };
 
   const allEmployees = useMemo(() => {
     const list = [];
@@ -1026,10 +1083,27 @@ export default function QualityPortal() {
             <div style={{ fontSize: 20, fontWeight: 500, color: COLORS.textPrimary }}>품질부서 인력 현황 포털</div>
             <div style={{ fontSize: 13, color: COLORS.textSecondary, marginTop: 2 }}>{todayStr()}</div>
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <FactoryBtn value="all" label="전체" />
-            <FactoryBtn value={1} label="1공장" />
-            <FactoryBtn value={2} label="2공장" />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <FactoryBtn value="all" label="전체" />
+              <FactoryBtn value={1} label="1공장" />
+              <FactoryBtn value={2} label="2공장" />
+            </div>
+            <button
+              onClick={resetOrg}
+              title="저장된 변경 내용을 지우고 기본 데이터로 되돌립니다"
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                borderRadius: 6,
+                border: `0.5px solid ${COLORS.border}`,
+                background: "transparent",
+                color: COLORS.textSecondary,
+                cursor: "pointer",
+              }}
+            >
+              초기화
+            </button>
           </div>
         </div>
 

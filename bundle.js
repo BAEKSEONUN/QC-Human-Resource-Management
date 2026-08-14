@@ -7422,6 +7422,34 @@
       ]
     )
   };
+  var STORAGE_KEY = "qualityPortal.org.v1";
+  function collectMaxId(org) {
+    let max = 0;
+    Object.values(org).forEach((factoryData) => {
+      (factoryData.heads || []).forEach((h) => {
+        if (h.id > max) max = h.id;
+      });
+      (factoryData.teams || []).forEach((t) => {
+        if (t.id > max) max = t.id;
+        (t.members || []).forEach((m) => {
+          if (m.id > max) max = m.id;
+        });
+      });
+    });
+    return max;
+  }
+  function loadInitialOrg() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return initialOrg;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
+      idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
+      return parsed;
+    } catch {
+      return initialOrg;
+    }
+  }
   function Badge({ status }) {
     const m = STATUS_META[status] || STATUS_META["\uCD9C\uADFC"];
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8127,11 +8155,26 @@
     ] });
   }
   function QualityPortal() {
-    const [org, setOrg] = (0, import_react.useState)(initialOrg);
+    const [org, setOrg] = (0, import_react.useState)(loadInitialOrg);
     const [tab, setTab] = (0, import_react.useState)("dashboard");
     const [factory, setFactory] = (0, import_react.useState)("all");
     const [statusFilter, setStatusFilter] = (0, import_react.useState)("\uC804\uCCB4");
     const [search, setSearch] = (0, import_react.useState)("");
+    (0, import_react.useEffect)(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
+      } catch {
+      }
+    }, [org]);
+    const resetOrg = () => {
+      if (confirm("\uC800\uC7A5\uB41C \uBCC0\uACBD \uB0B4\uC6A9\uC744 \uBAA8\uB450 \uC9C0\uC6B0\uACE0 \uAE30\uBCF8 \uB370\uC774\uD130\uB85C \uB418\uB3CC\uB9B4\uAE4C\uC694?")) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+        }
+        setOrg(initialOrg);
+      }
+    };
     const allEmployees = (0, import_react.useMemo)(() => {
       const list = [];
       [1, 2].forEach((f) => {
@@ -8207,10 +8250,29 @@
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 500, color: COLORS.textPrimary }, children: "\uD488\uC9C8\uBD80\uC11C \uC778\uB825 \uD604\uD669 \uD3EC\uD138" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 }, children: todayStr() })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: "all", label: "\uC804\uCCB4" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 1, label: "1\uACF5\uC7A5" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 2, label: "2\uACF5\uC7A5" })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 10 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 6 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: "all", label: "\uC804\uCCB4" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 1, label: "1\uACF5\uC7A5" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 2, label: "2\uACF5\uC7A5" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              onClick: resetOrg,
+              title: "\uC800\uC7A5\uB41C \uBCC0\uACBD \uB0B4\uC6A9\uC744 \uC9C0\uC6B0\uACE0 \uAE30\uBCF8 \uB370\uC774\uD130\uB85C \uB418\uB3CC\uB9BD\uB2C8\uB2E4",
+              style: {
+                padding: "6px 12px",
+                fontSize: 12,
+                borderRadius: 6,
+                border: `0.5px solid ${COLORS.border}`,
+                background: "transparent",
+                color: COLORS.textSecondary,
+                cursor: "pointer"
+              },
+              children: "\uCD08\uAE30\uD654"
+            }
+          )
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 20, borderBottom: `0.5px solid ${COLORS.border}`, marginBottom: 18 }, children: [
