@@ -34218,8 +34218,8 @@
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "MSNV(\uC0AC\uBC88), H\u1ECD t\xEAn(\uC131\uBA85), b\u1ED9 ph\u1EADn(\uBD80\uC11C: \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5(\uC9C1\uAE09: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/RMA\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB294 \uADF8 \uAC12 \uADF8\uB300\uB85C, \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC9C1\uAE09\uC774 PQC\uBA74 \uBD80\uC11C \uAC12\uC758 UNIT/ASSY \uD45C\uAE30\uB85C PQC UNIT/PQC ASSY\uB97C \uAD6C\uBD84\uD569\uB2C8\uB2E4. b\u1ED9 ph\u1EADn\uC774 QC\uBA74 \uC870\uC9C1\uB3C4 \uCE74\uB4DC\uB85C\uB294 \uB4F1\uB85D\uB418\uC9C0 \uC54A\uACE0 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB9CC \uC18C\uC18D QC\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4. \uC774\uBBF8 \uB4F1\uB85D\uB41C \uC0AC\uBC88\uC774\uB098 \uD30C\uC77C \uB0B4 \uC911\uBCF5 \uC0AC\uBC88\uC740 \uB4F1\uB85D\uC5D0\uC11C \uC81C\uC678\uB429\uB2C8\uB2E4.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\u1ED9t MSNV, H\u1ECD t\xEAn, b\u1ED9 ph\u1EADn (\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5 (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/RMA s\u1EBD gi\u1EEF nguy\xEAn trong danh s\xE1ch nh\u01B0ng hi\u1EC3n th\u1ECB l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu ch\u1EE9c v\u1EE5 l\xE0 PQC, gi\xE1 tr\u1ECB UNIT/ASSY trong b\u1ED9 ph\u1EADn s\u1EBD quy\u1EBFt \u0111\u1ECBnh PQC UNIT hay PQC ASSY. N\u1EBFu b\u1ED9 ph\u1EADn l\xE0 QC, nh\xE2n vi\xEAn s\u1EBD kh\xF4ng \u0111\u01B0\u1EE3c th\xEAm v\xE0o th\u1EBB s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c m\xE0 ch\u1EC9 hi\u1EC3n th\u1ECB trong danh s\xE1ch \u0111\u1EA7y \u0111\u1EE7 v\u1EDBi b\u1ED9 ph\u1EADn QC. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc. M\xE3 NV \u0111\xE3 t\u1ED3n t\u1EA1i ho\u1EB7c tr\xF9ng l\u1EB7p trong t\u1EC7p s\u1EBD b\u1ECB lo\u1EA1i kh\u1ECFi \u0111\u0103ng k\xFD."
+      ko: "MSNV(\uC0AC\uBC88), H\u1ECD t\xEAn(\uC131\uBA85), b\u1ED9 ph\u1EADn(\uBD80\uC11C: \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5(\uC9C1\uAE09: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/RMA\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB294 \uADF8 \uAC12 \uADF8\uB300\uB85C, \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC9C1\uAE09\uC774 PQC\uBA74 \uBD80\uC11C \uAC12\uC758 UNIT/ASSY \uD45C\uAE30\uB85C PQC UNIT/PQC ASSY\uB97C \uAD6C\uBD84\uD569\uB2C8\uB2E4. b\u1ED9 ph\u1EADn\uC774 QC\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0 \uC18C\uC18D QC\uB85C \uB4F1\uB85D\uB418\uACE0, \uC870\uC9C1\uB3C4\uC5D0\uB294 \uB9E8 \uB05D\uC758 \uACE0\uC815 Staff \uCE74\uB4DC\uC5D0 \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4. \uC774\uBBF8 \uB4F1\uB85D\uB41C \uC0AC\uBC88\uC774\uB098 \uD30C\uC77C \uB0B4 \uC911\uBCF5 \uC0AC\uBC88\uC740 \uB4F1\uB85D\uC5D0\uC11C \uC81C\uC678\uB429\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\u1ED9t MSNV, H\u1ECD t\xEAn, b\u1ED9 ph\u1EADn (\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5 (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/RMA s\u1EBD gi\u1EEF nguy\xEAn trong danh s\xE1ch nh\u01B0ng hi\u1EC3n th\u1ECB l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu ch\u1EE9c v\u1EE5 l\xE0 PQC, gi\xE1 tr\u1ECB UNIT/ASSY trong b\u1ED9 ph\u1EADn s\u1EBD quy\u1EBFt \u0111\u1ECBnh PQC UNIT hay PQC ASSY. N\u1EBFu b\u1ED9 ph\u1EADn l\xE0 QC, nh\xE2n vi\xEAn s\u1EBD hi\u1EC3n th\u1ECB v\u1EDBi b\u1ED9 ph\u1EADn QC trong danh s\xE1ch \u0111\u1EA7y \u0111\u1EE7, v\xE0 xu\u1EA5t hi\u1EC7n trong th\u1EBB Staff c\u1ED1 \u0111\u1ECBnh \u1EDF cu\u1ED1i s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc. M\xE3 NV \u0111\xE3 t\u1ED3n t\u1EA1i ho\u1EB7c tr\xF9ng l\u1EB7p trong t\u1EC7p s\u1EBD b\u1ECB lo\u1EA1i kh\u1ECFi \u0111\u0103ng k\xFD."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -34624,7 +34624,10 @@
     onMemberDragStart,
     onMemberDragEnd,
     isMemberDropTarget,
-    onMemberDrop
+    onMemberDrop,
+    headerColor,
+    titleEditable = true,
+    deletable = true
   }) {
     const { lang } = useLang();
     const [editingTitle, setEditingTitle] = (0, import_react.useState)(false);
@@ -34715,7 +34718,7 @@
                   {
                     title: t(lang, "dragTeamTitle"),
                     style: {
-                      background: COLORS.headMid,
+                      background: headerColor || COLORS.headMid,
                       color: "#fff",
                       padding: "8px 10px",
                       display: "flex",
@@ -34758,16 +34761,16 @@
                           style: {
                             fontSize: 13,
                             fontWeight: 500,
-                            cursor: isEditing ? "pointer" : "default",
+                            cursor: isEditing && titleEditable ? "pointer" : "default",
                             overflow: "hidden",
                             textOverflow: "ellipsis"
                           },
-                          onClick: isEditing ? () => setEditingTitle(true) : void 0,
+                          onClick: isEditing && titleEditable ? () => setEditingTitle(true) : void 0,
                           children: trTeamTitle(team.title, lang)
                         }
                       ),
                       isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        titleEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
                             onClick: () => setEditingTitle(true),
@@ -34776,7 +34779,7 @@
                             children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" })
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        deletable && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
                             onClick: onDeleteTeam,
@@ -34927,6 +34930,12 @@
         [factory]: { ...prev[factory], heads: updater(prev[factory].heads) }
       }));
     };
+    const updateQcMembers = (updater) => {
+      setOrg((prev) => ({
+        ...prev,
+        [factory]: { ...prev[factory], qcMembers: updater(prev[factory].qcMembers || []) }
+      }));
+    };
     const addTeam = () => {
       updateTeams((teams) => [...teams, { id: nextId(), title: "\uC0C8 \uD300", members: [] }]);
     };
@@ -34965,7 +34974,6 @@
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [
         data.heads.map((h, idx) => {
-          const tc = tierColorsOf("\uBD80\uC11C\uC7A5");
           return editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%", marginTop: idx === 0 ? 0 : 10 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             MemberForm,
             {
@@ -35008,20 +35016,17 @@
                     gap: 8,
                     padding: "8px 10px",
                     borderRadius: 8,
-                    background: tc.bg,
-                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderLeft: `3px solid ${tc.color}`,
+                    background: COLORS.headDark,
+                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.headDark}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.5, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0, color: "#fff" }, children: "\u283F" }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: trHeadPosition(h.position, lang) }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: h.name })
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "rgba(255,255,255,0.7)" }, children: trHeadPosition(h.position, lang) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: "#fff" }, children: h.name })
                     ] })
                   ]
                 }
@@ -35153,6 +35158,25 @@
           },
           team.id
         )),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TeamCard,
+          {
+            team: { id: "qc-staff-card", title: "Staff", members: data.qcMembers || [] },
+            isEditing,
+            onDirtyChange: (d) => handleTeamDirtyChange("qc-staff-card", d),
+            headerColor: COLORS.headDark,
+            titleEditable: false,
+            deletable: false,
+            onAddMember: (d) => updateQcMembers((members) => [...members, { id: nextId(), ...d, factory, status: "\uCD9C\uADFC" }]),
+            onEditMember: (memberId, d) => updateQcMembers((members) => members.map((m) => m.id === memberId ? { ...m, ...d } : m)),
+            onDeleteMember: (memberId) => {
+              if (confirm(t(lang, "confirmDeleteMember"))) {
+                updateQcMembers((members) => members.filter((m) => m.id !== memberId));
+              }
+            }
+          },
+          "qc-staff-card"
+        ),
         isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 16, background: "transparent" } }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -35643,7 +35667,10 @@
       return scoped.filter((e) => e.status !== "\uCD9C\uADFC").slice().sort((a, b) => ABSENCE_ORDER.indexOf(a.status) - ABSENCE_ORDER.indexOf(b.status));
     }, [scoped]);
     const filteredList = (0, import_react.useMemo)(() => {
-      return scoped.filter((e) => statusFilter === "\uC804\uCCB4" || e.status === statusFilter).filter((e) => !search.trim() || e.name.includes(search.trim()) || e.empNo.includes(search.trim())).slice().sort(sortByDeptAndPosition);
+      return scoped.filter((e) => statusFilter === "\uC804\uCCB4" || e.status === statusFilter).filter((e) => {
+        const q = search.trim().toLowerCase();
+        return !q || e.name.toLowerCase().includes(q) || e.empNo.toLowerCase().includes(q);
+      }).slice().sort(sortByDeptAndPosition);
     }, [scoped, statusFilter, search]);
     const updateListEntry = (entry, data) => {
       setOrg((prev) => {

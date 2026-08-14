@@ -162,8 +162,8 @@ const DICT = {
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 조직도 카드로는 등록되지 않고 전체 명단에만 소속 QC로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ không được thêm vào thẻ sơ đồ tổ chức mà chỉ hiển thị trong danh sách đầy đủ với bộ phận QC. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
+    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 전체 명단에 소속 QC로 등록되고, 조직도에는 맨 끝의 고정 Staff 카드에 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ hiển thị với bộ phận QC trong danh sách đầy đủ, và xuất hiện trong thẻ Staff cố định ở cuối sơ đồ tổ chức. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -229,7 +229,8 @@ const nextId = () => idSeq++;
 
 // heads: 공장당 여러 명 둘 수 있는 품질부서장 목록.
 // qcMembers: 부서(bộ phận)가 "QC"로만 적혀 있어 특정 팀 카드에 넣을 수
-// 없는 인원 목록 — 조직도에는 표시되지 않고 전체 명단에만 "QC" 소속으로 나온다.
+// 없는 인원 목록 — 전체 명단에는 "QC" 소속으로 나오고, 조직도에는 맨 끝의
+// 고정 "Staff" 카드(직급별 tier로 묶여서 표시)에서만 보여진다.
 const seedFactory = (factory, headsInfo, teamsSeed) => {
   const teams = teamsSeed.map((t) => ({
     id: nextId(),
@@ -635,6 +636,9 @@ function TeamCard({
   onMemberDragEnd,
   isMemberDropTarget,
   onMemberDrop,
+  headerColor,
+  titleEditable = true,
+  deletable = true,
 }) {
   const { lang } = useLang();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -733,7 +737,7 @@ function TeamCard({
         <div
           title={t(lang, "dragTeamTitle")}
           style={{
-            background: COLORS.headMid,
+            background: headerColor || COLORS.headMid,
             color: "#fff",
             padding: "8px 10px",
             display: "flex",
@@ -776,31 +780,35 @@ function TeamCard({
               style={{
                 fontSize: 13,
                 fontWeight: 500,
-                cursor: isEditing ? "pointer" : "default",
+                cursor: isEditing && titleEditable ? "pointer" : "default",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
-              onClick={isEditing ? () => setEditingTitle(true) : undefined}
+              onClick={isEditing && titleEditable ? () => setEditingTitle(true) : undefined}
             >
               {trTeamTitle(team.title, lang)}
             </span>
           )}
           {isEditing && (
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              <button
-                onClick={() => setEditingTitle(true)}
-                title={t(lang, "editTeamNameTitle")}
-                style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
-              >
-                <span aria-hidden="true">✎</span>
-              </button>
-              <button
-                onClick={onDeleteTeam}
-                title={t(lang, "deleteTeamTitle")}
-                style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
-              >
-                <span aria-hidden="true">🗑</span>
-              </button>
+              {titleEditable && (
+                <button
+                  onClick={() => setEditingTitle(true)}
+                  title={t(lang, "editTeamNameTitle")}
+                  style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
+                >
+                  <span aria-hidden="true">✎</span>
+                </button>
+              )}
+              {deletable && (
+                <button
+                  onClick={onDeleteTeam}
+                  title={t(lang, "deleteTeamTitle")}
+                  style={{ background: "transparent", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 12 }}
+                >
+                  <span aria-hidden="true">🗑</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -947,6 +955,15 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
     }));
   };
 
+  // bộ phận이 "QC"로만 적힌 인원(qcMembers) 전용 업데이트 헬퍼. 이 인원들은
+  // 팀 카드가 아니라 조직도 맨 끝의 고정 "Staff" 카드에서만 추가·수정·삭제된다.
+  const updateQcMembers = (updater) => {
+    setOrg((prev) => ({
+      ...prev,
+      [factory]: { ...prev[factory], qcMembers: updater(prev[factory].qcMembers || []) },
+    }));
+  };
+
   const addTeam = () => {
     updateTeams((teams) => [...teams, { id: nextId(), title: "새 팀", members: [] }]);
   };
@@ -995,7 +1012,6 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
           드래그 정렬 자체는 수정 모드와 무관하게 항상 가능하다. */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         {data.heads.map((h, idx) => {
-          const tc = tierColorsOf("부서장");
           return editingHeadId === h.id ? (
             <div key={h.id} style={{ width: 260, maxWidth: "100%", marginTop: idx === 0 ? 0 : 10 }}>
               <MemberForm
@@ -1038,22 +1054,19 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
                     gap: 8,
                     padding: "8px 10px",
                     borderRadius: 8,
-                    background: tc.bg,
-                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : tc.border}`,
-                    borderLeft: `3px solid ${tc.color}`,
+                    background: COLORS.headDark,
+                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.headDark}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1,
                   }}
                 >
-                  <span aria-hidden="true" style={{ opacity: 0.5, fontSize: 12, flexShrink: 0 }}>
+                  <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12, flexShrink: 0, color: "#fff" }}>
                     ⠿
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: COLORS.textMuted }}>{trHeadPosition(h.position, lang)}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{h.name}</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{trHeadPosition(h.position, lang)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{h.name}</div>
                   </div>
                 </div>
                 {isEditing && data.heads.length > 1 && (
@@ -1197,6 +1210,28 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
             }}
           />
         ))}
+
+        {/* bộ phận이 "QC"로만 적힌 인원(qcMembers) 전용 고정 카드. 특정 팀에
+            속하지 않으므로 항상 맨 끝에 표시되고, 다른 카드처럼 이름을
+            바꾸거나 카드 자체를 지울 수는 없다 (팀원 추가/수정/삭제는 가능). */}
+        <TeamCard
+          key="qc-staff-card"
+          team={{ id: "qc-staff-card", title: "Staff", members: data.qcMembers || [] }}
+          isEditing={isEditing}
+          onDirtyChange={(d) => handleTeamDirtyChange("qc-staff-card", d)}
+          headerColor={COLORS.headDark}
+          titleEditable={false}
+          deletable={false}
+          onAddMember={(d) => updateQcMembers((members) => [...members, { id: nextId(), ...d, factory, status: "출근" }])}
+          onEditMember={(memberId, d) =>
+            updateQcMembers((members) => members.map((m) => (m.id === memberId ? { ...m, ...d } : m)))
+          }
+          onDeleteMember={(memberId) => {
+            if (confirm(t(lang, "confirmDeleteMember"))) {
+              updateQcMembers((members) => members.filter((m) => m.id !== memberId));
+            }
+          }}
+        />
 
         {isEditing && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0", minWidth: 140 }}>
@@ -1795,7 +1830,10 @@ export default function QualityPortal() {
   const filteredList = useMemo(() => {
     return scoped
       .filter((e) => statusFilter === "전체" || e.status === statusFilter)
-      .filter((e) => !search.trim() || e.name.includes(search.trim()) || e.empNo.includes(search.trim()))
+      .filter((e) => {
+        const q = search.trim().toLowerCase();
+        return !q || e.name.toLowerCase().includes(q) || e.empNo.toLowerCase().includes(q);
+      })
       .slice()
       .sort(sortByDeptAndPosition);
   }, [scoped, statusFilter, search]);
