@@ -35123,7 +35123,7 @@
     return String(s ?? "").trim().toLowerCase().replace(/[\s_\-./]/g, "");
   }
   var COLUMN_ALIASES = {
-    empNo: ["\uC0AC\uBC88", "\uC0AC\uC6D0\uBC88\uD638", "empno", "emp no", "id", "m\xE3 nv", "manv", "employeeid"],
+    empNo: ["\uC0AC\uBC88", "\uC0AC\uC6D0\uBC88\uD638", "empno", "emp no", "id", "m\xE3 nv", "manv", "msnv", "employeeid"],
     name: ["\uC131\uBA85", "\uC774\uB984", "name", "h\u1ECD t\xEAn", "hoten", "hoten nv"],
     dept: ["\uBD80\uC11C", "\uD300", "\uC18C\uC18D", "department", "dept", "team", "b\u1ED9 ph\u1EADn", "bophan"],
     position: ["\uC9C1\uAE09", "position", "\uC9C1\uC704", "ch\u1EE9c v\u1EE5", "chucvu"],

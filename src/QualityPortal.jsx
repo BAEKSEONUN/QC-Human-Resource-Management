@@ -1162,7 +1162,7 @@ function normalizeHeaderCell(s) {
 }
 
 const COLUMN_ALIASES = {
-  empNo: ["사번", "사원번호", "empno", "emp no", "id", "mã nv", "manv", "employeeid"],
+  empNo: ["사번", "사원번호", "empno", "emp no", "id", "mã nv", "manv", "msnv", "employeeid"],
   name: ["성명", "이름", "name", "họ tên", "hoten", "hoten nv"],
   dept: ["부서", "팀", "소속", "department", "dept", "team", "bộ phận", "bophan"],
   position: ["직급", "position", "직위", "chức vụ", "chucvu"],
