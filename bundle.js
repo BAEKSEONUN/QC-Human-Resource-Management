@@ -34124,8 +34124,10 @@
     const idx = DEPT_ORDER.indexOf(team);
     return idx === -1 ? DEPT_ORDER.length : idx;
   };
+  var POSITION_RANK_ALIASES = { IQC: "Inspector", PQC: "Inspector", OQC: "Inspector", RMA: "Inspector" };
   var positionRank = (position) => {
-    const idx = POSITIONS.indexOf(position);
+    const canonical = POSITION_RANK_ALIASES[position] || position;
+    const idx = POSITIONS.indexOf(canonical);
     return idx === -1 ? POSITIONS.length : idx;
   };
   var sortByDeptAndPosition = (a, b) => {
@@ -34170,6 +34172,16 @@
       vi: (title) => `X\xF3a nh\xF3m "${title}"? T\u1EA5t c\u1EA3 th\xE0nh vi\xEAn trong nh\xF3m c\u0169ng s\u1EBD b\u1ECB x\xF3a.`
     },
     confirmDeleteMember: { ko: "\uC774 \uD300\uC6D0\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?", vi: "X\xF3a th\xE0nh vi\xEAn n\xE0y?" },
+    deleteAll: { ko: "\uC804\uCCB4 \uC0AD\uC81C", vi: "X\xF3a t\u1EA5t c\u1EA3" },
+    confirmDeleteAll: {
+      ko: "\uC804\uCCB4 \uBA85\uB2E8(1\uACF5\uC7A5\xB72\uACF5\uC7A5\uC758 \uBD80\uC11C\uC7A5\uACFC \uBAA8\uB4E0 \uD300\uC6D0)\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uC774 \uC791\uC5C5\uC740 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      vi: "X\xF3a to\xE0n b\u1ED9 danh s\xE1ch (tr\u01B0\u1EDFng ph\xF2ng v\xE0 t\u1EA5t c\u1EA3 th\xE0nh vi\xEAn \u1EDF Nh\xE0 m\xE1y 1 v\xE0 2)? H\xE0nh \u0111\u1ED9ng n\xE0y kh\xF4ng th\u1EC3 ho\xE0n t\xE1c."
+    },
+    deleteSelected: { ko: (n) => `\uC120\uD0DD \uC0AD\uC81C (${n})`, vi: (n) => `X\xF3a m\u1EE5c \u0111\xE3 ch\u1ECDn (${n})` },
+    confirmDeleteSelected: {
+      ko: (n) => `\uC120\uD0DD\uD55C ${n}\uBA85\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`,
+      vi: (n) => `X\xF3a ${n} ng\u01B0\u1EDDi \u0111\xE3 ch\u1ECDn?`
+    },
     dragTeamTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uD300 \uC21C\uC11C \uBCC0\uACBD", vi: "K\xE9o \u0111\u1EC3 \u0111\u1ED5i th\u1EE9 t\u1EF1 nh\xF3m" },
     dragMemberTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uB2E4\uB978 \uD300\uC73C\uB85C \uC774\uB3D9", vi: "K\xE9o \u0111\u1EC3 chuy\u1EC3n sang nh\xF3m kh\xE1c" },
     editTeamNameTitle: { ko: "\uD300 \uC774\uB984 \uC218\uC815", vi: "S\u1EEDa t\xEAn nh\xF3m" },
@@ -34206,8 +34218,8 @@
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "\uC0AC\uBC88, \uC131\uBA85, \uBD80\uC11C(QC/IQC/PQC/OQC/OQC(SPL)/RMA), \uC9C1\uAE09(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/OQC(SPL)/RMA\uC778 \uACBD\uC6B0 \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\xE1c c\u1ED9t M\xE3 NV, H\u1ECD t\xEAn, B\u1ED9 ph\u1EADn (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Ch\u1EE9c v\u1EE5 (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/OQC(SPL)/RMA s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD l\xE0 Inspector. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD \u0111\u01B0\u1EE3c d\xF9ng \u0111\u1EC3 t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc."
+      ko: "MSNV(\uC0AC\uBC88), H\u1ECD t\xEAn(\uC131\uBA85), b\u1ED9 ph\u1EADn(\uBD80\uC11C: \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5(\uC9C1\uAE09: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/RMA\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB294 \uADF8 \uAC12 \uADF8\uB300\uB85C, \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC9C1\uAE09\uC774 PQC\uBA74 \uBD80\uC11C \uAC12\uC758 UNIT/ASSY \uD45C\uAE30\uB85C PQC UNIT/PQC ASSY\uB97C \uAD6C\uBD84\uD569\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\u1ED9t MSNV, H\u1ECD t\xEAn, b\u1ED9 ph\u1EADn (\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5 (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/RMA s\u1EBD gi\u1EEF nguy\xEAn trong danh s\xE1ch nh\u01B0ng hi\u1EC3n th\u1ECB l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu ch\u1EE9c v\u1EE5 l\xE0 PQC, gi\xE1 tr\u1ECB UNIT/ASSY trong b\u1ED9 ph\u1EADn s\u1EBD quy\u1EBFt \u0111\u1ECBnh PQC UNIT hay PQC ASSY. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -34552,13 +34564,17 @@
   }
   var POSITION_TIER = {
     Inspector: "Inspector",
-    Staff: "Inspector",
+    IQC: "Inspector",
+    PQC: "Inspector",
+    OQC: "Inspector",
+    RMA: "Inspector",
+    Staff: "Staff",
     "Supervisor 1": "Supervisor",
     "Supervisor 2": "Supervisor",
     Manager: "Manager",
     "Upper Manager": "Manager"
   };
-  var TIER_ORDER = ["Manager", "Supervisor", "Inspector"];
+  var TIER_ORDER = ["Manager", "Supervisor", "Staff", "Inspector"];
   var tierRank = (tier) => {
     const idx = TIER_ORDER.indexOf(tier);
     return idx === -1 ? TIER_ORDER.length : idx;
@@ -34567,9 +34583,12 @@
     \uBD80\uC11C\uC7A5: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
     Manager: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
     Supervisor: { color: "#C2790C", bg: "#FDF0DC", border: "#F3D9A8" },
+    Staff: { color: "#6B4FA0", bg: "#F1ECFA", border: "#DACEF0" },
     Inspector: { color: "#2668B2", bg: "#E6F0FB", border: "#BBD8F4" }
   };
   var tierColorsOf = (tier) => TIER_COLORS[tier] || TIER_COLORS.Inspector;
+  var INSPECTOR_POSITION_ALIASES = ["IQC", "PQC", "OQC", "RMA"];
+  var orgPositionLabel = (position) => INSPECTOR_POSITION_ALIASES.includes(position) ? "Inspector" : position;
   function groupByTier(members) {
     const groups = /* @__PURE__ */ new Map();
     members.forEach((m) => {
@@ -34643,7 +34662,7 @@
         },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: m.position }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "#000000" }, children: orgPositionLabel(m.position) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: m.name })
           ] }),
           isEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, flexShrink: 0 }, children: [
@@ -34793,7 +34812,7 @@
                         const tc = tierColorsOf(tier);
                         return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [
                           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: idx === 0 ? 8 : 10, background: COLORS.borderStrong } }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                             "div",
                             {
                               style: {
@@ -34807,23 +34826,20 @@
                                 gap: 6,
                                 background: tc.bg
                               },
-                              children: [
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 10, fontWeight: 600, color: "#000000", letterSpacing: 0.3, padding: "0 2px" }, children: tier }),
-                                members.map(
-                                  (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                    MemberForm,
-                                    {
-                                      initial: m,
-                                      onCancel: () => setEditingMemberId(null),
-                                      onSave: (data) => {
-                                        onEditMember(m.id, data);
-                                        setEditingMemberId(null);
-                                      }
-                                    },
-                                    m.id
-                                  ) : renderMemberRow(m, tc)
-                                )
-                              ]
+                              children: members.map(
+                                (m) => editingMemberId === m.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                  MemberForm,
+                                  {
+                                    initial: m,
+                                    onCancel: () => setEditingMemberId(null),
+                                    onSave: (data) => {
+                                      onEditMember(m.id, data);
+                                      setEditingMemberId(null);
+                                    }
+                                  },
+                                  m.id
+                                ) : renderMemberRow(m, tc)
+                              )
                             }
                           )
                         ] }, tier);
@@ -35198,11 +35214,11 @@
     return String(s ?? "").trim().toLowerCase().replace(/[\s_\-./]/g, "");
   }
   var COLUMN_ALIASES = {
-    empNo: ["\uC0AC\uBC88", "\uC0AC\uC6D0\uBC88\uD638", "empno", "emp no", "id", "m\xE3 nv", "manv", "msnv", "employeeid"],
-    name: ["\uC131\uBA85", "\uC774\uB984", "name", "h\u1ECD t\xEAn", "hoten", "hoten nv"],
-    dept: ["\uBD80\uC11C", "\uD300", "\uC18C\uC18D", "department", "dept", "team", "b\u1ED9 ph\u1EADn", "bophan"],
-    position: ["\uC9C1\uAE09", "position", "\uC9C1\uC704", "ch\u1EE9c v\u1EE5", "chucvu"],
-    factory: ["\uACF5\uC7A5", "factory", "plant", "nh\xE0 m\xE1y", "nhamay"]
+    empNo: ["\uC0AC\uBC88", "MSNV"],
+    name: ["\uC131\uBA85", "H\u1ECD t\xEAn"],
+    dept: ["\uBD80\uC11C", "b\u1ED9 ph\u1EADn"],
+    position: ["\uC9C1\uAE09", "ch\u1EE9c v\u1EE5"],
+    factory: ["\uACF5\uC7A5", "X\u01B0\u1EDFng", "nh\xE0 m\xE1y"]
   };
   function detectColumns(headerRow) {
     const map = {};
@@ -35217,31 +35233,18 @@
     });
     return map;
   }
-  var DEPT_VALUE_ALIASES = {
-    \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790: ["\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", "\uD604\uC9C0\uCD1D\uAD04", "QC", "t\u1ED5ng h\u1EE3p", "tonghop", "overall", "general"],
-    "PQC UNIT": ["PQC"],
-    OQC: ["OQC(SPL)", "OQC SPL"]
-  };
   function normalizeDeptValue(raw) {
     const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
     if (!norm) return null;
-    for (const dept of DEPARTMENTS) {
-      const candidates = [dept, ...DEPT_VALUE_ALIASES[dept] || []];
-      if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return dept;
-    }
-    return null;
+    const match = DEPARTMENTS.find((dept) => dept.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
+    return match || null;
   }
-  var POSITION_VALUE_ALIASES = {
-    Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL", "RMA"]
-  };
+  var EXCEL_POSITIONS = ["Manager", "Supervisor 1", "Supervisor 2", "Staff", "IQC", "PQC", "OQC", "RMA"];
   function normalizePositionValue(raw) {
     const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
     if (!norm) return null;
-    for (const p of POSITIONS) {
-      const candidates = [p, ...POSITION_VALUE_ALIASES[p] || []];
-      if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return p;
-    }
-    return null;
+    const match = EXCEL_POSITIONS.find((p) => p.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
+    return match || null;
   }
   function normalizeForMatch(s) {
     return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
@@ -35324,8 +35327,13 @@
           const name = String(r[colMap.name] ?? "").trim();
           const deptRaw = String(r[colMap.dept] ?? "").trim();
           const posRaw = String(r[colMap.position] ?? "").trim();
-          const dept = normalizeDeptValue(deptRaw);
           const position = normalizePositionValue(posRaw);
+          let dept = normalizeDeptValue(deptRaw);
+          if (position === "PQC") {
+            const normDeptRaw = normalizeForMatch(deptRaw);
+            if (normDeptRaw.includes("unit")) dept = "PQC UNIT";
+            else if (normDeptRaw.includes("assy")) dept = "PQC ASSY";
+          }
           const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
           const reasons = [];
           if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
@@ -35553,6 +35561,7 @@
     const [showUpload, setShowUpload] = (0, import_react.useState)(false);
     const [listEditing, setListEditing] = (0, import_react.useState)(false);
     const [editingListId, setEditingListId] = (0, import_react.useState)(null);
+    const [selectedListIds, setSelectedListIds] = (0, import_react.useState)(() => /* @__PURE__ */ new Set());
     (0, import_react.useEffect)(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
@@ -35633,6 +35642,32 @@
         };
       });
     };
+    const deleteListEntries = (entries) => {
+      const idSet = new Set(entries.map((e) => e.id));
+      setOrg((prev) => {
+        const next = { ...prev };
+        [1, 2].forEach((f) => {
+          const factoryData = next[f];
+          next[f] = {
+            ...factoryData,
+            heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
+            teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) }))
+          };
+        });
+        return next;
+      });
+    };
+    const clearAllEmployees = () => {
+      setOrg((prev) => {
+        const next = {};
+        [1, 2].forEach((f) => {
+          next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })) };
+        });
+        return next;
+      });
+      setSelectedListIds(/* @__PURE__ */ new Set());
+      setEditingListId(null);
+    };
     const FactoryBtn = ({ value, label }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "button",
       {
@@ -35690,8 +35725,38 @@
         ]
       }
     );
-    const LIST_GRID_COLUMNS = listEditing ? "90px 1fr 130px 70px 1.2fr 110px 70px" : "90px 1fr 130px 70px 1.2fr 110px";
+    const LIST_GRID_COLUMNS = listEditing ? "24px 90px 1fr 130px 70px 1.2fr 110px 70px" : "90px 1fr 130px 70px 1.2fr 110px";
     const listLocked = listEditing && editingListId !== null;
+    const selectableIds = (0, import_react.useMemo)(
+      () => new Set(filteredList.filter((e) => !e.isHead || e.headCountInFactory > 1).map((e) => e.id)),
+      [filteredList]
+    );
+    const allSelected = selectableIds.size > 0 && [...selectableIds].every((id) => selectedListIds.has(id));
+    const toggleSelectAll = () => {
+      setSelectedListIds((prev) => {
+        if (allSelected) return /* @__PURE__ */ new Set();
+        return new Set(selectableIds);
+      });
+    };
+    const toggleSelectOne = (id) => {
+      setSelectedListIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    };
+    const handleDeleteSelected = () => {
+      const entries = filteredList.filter((e) => selectedListIds.has(e.id));
+      if (entries.length === 0) return;
+      if (confirm(t(lang, "confirmDeleteSelected", entries.length))) {
+        deleteListEntries(entries);
+        setSelectedListIds(/* @__PURE__ */ new Set());
+      }
+    };
+    const handleDeleteAll = () => {
+      if (confirm(t(lang, "confirmDeleteAll"))) clearAllEmployees();
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LangContext.Provider, { value: langCtx, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { maxWidth: 1400, margin: "0 auto", padding: "20px 20px 40px" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }, children: [
@@ -35786,6 +35851,7 @@
                 {
                   onClick: () => {
                     if (listLocked) return;
+                    if (listEditing) setSelectedListIds(/* @__PURE__ */ new Set());
                     setListEditing((v) => !v);
                   },
                   disabled: listLocked,
@@ -35806,6 +35872,42 @@
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { marginRight: 4 }, children: "\u270E" }),
                     listEditing ? t(lang, "editDone") : t(lang, "edit")
                   ]
+                }
+              ),
+              listEditing && selectedListIds.size > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  onClick: handleDeleteSelected,
+                  style: {
+                    height: 30,
+                    padding: "0 12px",
+                    borderRadius: 6,
+                    border: `0.5px solid ${COLORS.danger}`,
+                    background: COLORS.dangerBg,
+                    color: COLORS.danger,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer"
+                  },
+                  children: t(lang, "deleteSelected", selectedListIds.size)
+                }
+              ),
+              listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  onClick: handleDeleteAll,
+                  style: {
+                    height: 30,
+                    padding: "0 12px",
+                    borderRadius: 6,
+                    border: `0.5px solid ${COLORS.danger}`,
+                    background: COLORS.card,
+                    color: COLORS.danger,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer"
+                  },
+                  children: t(lang, "deleteAll")
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -35853,6 +35955,16 @@
                   padding: "0 10px 4px"
                 },
                 children: [
+                  listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: allSelected,
+                      onChange: toggleSelectAll,
+                      style: { margin: 0 },
+                      title: t(lang, "deleteSelected", selectedListIds.size)
+                    }
+                  ),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colEmpNo") }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colNameTeam") }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "colPosition") }),
@@ -35899,6 +36011,16 @@
                     borderLeft: `3px solid ${meta.color}`
                   },
                   children: [
+                    listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: selectedListIds.has(e.id),
+                        disabled: !canDelete,
+                        onChange: () => toggleSelectOne(e.id),
+                        style: { margin: 0 }
+                      }
+                    ),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.empNo }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { minWidth: 0 }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: e.name }),

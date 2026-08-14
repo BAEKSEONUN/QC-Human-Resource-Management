@@ -59,8 +59,12 @@ const deptRank = (team) => {
   return idx === -1 ? DEPT_ORDER.length : idx;
 };
 
+// 엑셀에서 검사 구역(IQC/PQC/OQC/RMA)을 직급으로 적어 올린 경우, 서열
+// 계산에서는 Inspector와 동일하게 취급한다.
+const POSITION_RANK_ALIASES = { IQC: "Inspector", PQC: "Inspector", OQC: "Inspector", RMA: "Inspector" };
 const positionRank = (position) => {
-  const idx = POSITIONS.indexOf(position);
+  const canonical = POSITION_RANK_ALIASES[position] || position;
+  const idx = POSITIONS.indexOf(canonical);
   // 목록에 없는 직급(부서장 등)은 최고 서열로 취급해 최상단에 표시
   return idx === -1 ? POSITIONS.length : idx;
 };
@@ -111,6 +115,16 @@ const DICT = {
     vi: (title) => `Xóa nhóm "${title}"? Tất cả thành viên trong nhóm cũng sẽ bị xóa.`,
   },
   confirmDeleteMember: { ko: "이 팀원을 삭제할까요?", vi: "Xóa thành viên này?" },
+  deleteAll: { ko: "전체 삭제", vi: "Xóa tất cả" },
+  confirmDeleteAll: {
+    ko: "전체 명단(1공장·2공장의 부서장과 모든 팀원)을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+    vi: "Xóa toàn bộ danh sách (trưởng phòng và tất cả thành viên ở Nhà máy 1 và 2)? Hành động này không thể hoàn tác.",
+  },
+  deleteSelected: { ko: (n) => `선택 삭제 (${n})`, vi: (n) => `Xóa mục đã chọn (${n})` },
+  confirmDeleteSelected: {
+    ko: (n) => `선택한 ${n}명을 삭제할까요?`,
+    vi: (n) => `Xóa ${n} người đã chọn?`,
+  },
   dragTeamTitle: { ko: "드래그하여 팀 순서 변경", vi: "Kéo để đổi thứ tự nhóm" },
   dragMemberTitle: { ko: "드래그하여 다른 팀으로 이동", vi: "Kéo để chuyển sang nhóm khác" },
   editTeamNameTitle: { ko: "팀 이름 수정", vi: "Sửa tên nhóm" },
@@ -147,8 +161,8 @@ const DICT = {
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "사번, 성명, 부서(QC/IQC/PQC/OQC/OQC(SPL)/RMA), 직급(Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/OQC(SPL)/RMA인 경우 조직도에는 Inspector로 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có các cột Mã NV, Họ tên, Bộ phận (QC/IQC/PQC/OQC/OQC(SPL)/RMA), Chức vụ (Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/OQC(SPL)/RMA). Chức vụ là IQC/PQC/OQC/OQC(SPL)/RMA sẽ được đăng ký là Inspector. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ được dùng để tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
+    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -534,17 +548,22 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
   );
 }
 
-// 6단계 세부 직급을 Manager / Supervisor / Inspector 3단계로 묶어서 보여준다.
-// (Manager: Manager·Upper Manager, Supervisor: Supervisor 1·2, Inspector: Inspector·Staff)
+// 직급을 Manager / Supervisor / Staff / Inspector 4단계로 묶어서 보여준다.
+// (Manager: Manager·Upper Manager, Supervisor: Supervisor 1·2, Staff는 별도
+// 그룹, Inspector: Inspector 및 엑셀에서 검사 구역으로 표기된 IQC/PQC/OQC/RMA)
 const POSITION_TIER = {
   Inspector: "Inspector",
-  Staff: "Inspector",
+  IQC: "Inspector",
+  PQC: "Inspector",
+  OQC: "Inspector",
+  RMA: "Inspector",
+  Staff: "Staff",
   "Supervisor 1": "Supervisor",
   "Supervisor 2": "Supervisor",
   Manager: "Manager",
   "Upper Manager": "Manager",
 };
-const TIER_ORDER = ["Manager", "Supervisor", "Inspector"];
+const TIER_ORDER = ["Manager", "Supervisor", "Staff", "Inspector"];
 const tierRank = (tier) => {
   const idx = TIER_ORDER.indexOf(tier);
   return idx === -1 ? TIER_ORDER.length : idx;
@@ -555,9 +574,15 @@ const TIER_COLORS = {
   부서장: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
   Manager: { color: "#2F8F5B", bg: "#E7F6EC", border: "#BEE6CC" },
   Supervisor: { color: "#C2790C", bg: "#FDF0DC", border: "#F3D9A8" },
+  Staff: { color: "#6B4FA0", bg: "#F1ECFA", border: "#DACEF0" },
   Inspector: { color: "#2668B2", bg: "#E6F0FB", border: "#BBD8F4" },
 };
 const tierColorsOf = (tier) => TIER_COLORS[tier] || TIER_COLORS.Inspector;
+
+// 조직도 카드에서는 IQC/PQC/OQC/RMA로 등록된 직급도 검사 인원이라는 뜻으로
+// "Inspector"라고 표시한다 (전체 명단에서는 원래 값을 그대로 보여준다).
+const INSPECTOR_POSITION_ALIASES = ["IQC", "PQC", "OQC", "RMA"];
+const orgPositionLabel = (position) => (INSPECTOR_POSITION_ALIASES.includes(position) ? "Inspector" : position);
 
 // 팀원을 직급 그룹(Manager/Supervisor/Inspector)으로 묶어 [그룹, 팀원목록] 쌍의
 // 배열로 반환한다 (서열 높은 그룹 먼저, 그룹 안에서도 세부 직급 높은 순)
@@ -650,7 +675,7 @@ function TeamCard({
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: COLORS.textMuted }}>{m.position}</div>
+        <div style={{ fontSize: 11, color: "#000000" }}>{orgPositionLabel(m.position)}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{m.name}</div>
       </div>
       {isEditing && (
@@ -813,9 +838,6 @@ function TeamCard({
                     background: tc.bg,
                   }}
                 >
-                  <div style={{ fontSize: 10, fontWeight: 600, color: "#000000", letterSpacing: 0.3, padding: "0 2px" }}>
-                    {tier}
-                  </div>
                   {members.map((m) =>
                     editingMemberId === m.id ? (
                       <MemberForm
@@ -1242,12 +1264,14 @@ function normalizeHeaderCell(s) {
   return String(s ?? "").trim().toLowerCase().replace(/[\s_\-./]/g, "");
 }
 
+// 열 인식은 한국어/베트남어 표기 각 하나씩만 정확히 인식한다.
+// MSNV=사번, Họ tên=성명, bộ phận=부서, chức vụ=직급.
 const COLUMN_ALIASES = {
-  empNo: ["사번", "사원번호", "empno", "emp no", "id", "mã nv", "manv", "msnv", "employeeid"],
-  name: ["성명", "이름", "name", "họ tên", "hoten", "hoten nv"],
-  dept: ["부서", "팀", "소속", "department", "dept", "team", "bộ phận", "bophan"],
-  position: ["직급", "position", "직위", "chức vụ", "chucvu"],
-  factory: ["공장", "factory", "plant", "nhà máy", "nhamay"],
+  empNo: ["사번", "MSNV"],
+  name: ["성명", "Họ tên"],
+  dept: ["부서", "bộ phận"],
+  position: ["직급", "chức vụ"],
+  factory: ["공장", "Xưởng", "nhà máy"],
 };
 
 function detectColumns(headerRow) {
@@ -1264,39 +1288,26 @@ function detectColumns(headerRow) {
   return map;
 }
 
-// 실제 인사 자료의 "부서" 열에는 QC/PQC/OQC(SPL)처럼 조직도 팀 이름과
-// 정확히 일치하지 않는 값이 들어오는 경우가 있어, 아래 별칭들을 실제
-// 팀 이름으로 매핑해 인식한다. PQC(세부 구분 없음)는 PQC UNIT으로,
-// OQC(SPL)은 OQC로, QC(전체를 뜻함)는 현지총괄관리자 팀으로 등록된다.
-const DEPT_VALUE_ALIASES = {
-  현지총괄관리자: ["현지총괄관리자", "현지총괄", "QC", "tổng hợp", "tonghop", "overall", "general"],
-  "PQC UNIT": ["PQC"],
-  OQC: ["OQC(SPL)", "OQC SPL"],
-};
+// 부서(bộ phận) 값은 조직도 팀 이름과 정확히 일치해야 인식된다(QC 등은
+// 더 이상 다른 팀으로 자동 매핑하지 않는다 — 일치하는 팀이 없으면
+// 식별 실패로 표시된다).
 function normalizeDeptValue(raw) {
   const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
   if (!norm) return null;
-  for (const dept of DEPARTMENTS) {
-    const candidates = [dept, ...(DEPT_VALUE_ALIASES[dept] || [])];
-    if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return dept;
-  }
-  return null;
+  const match = DEPARTMENTS.find((dept) => dept.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
+  return match || null;
 }
 
-// 일부 인사 자료는 검사직 직원의 "직급" 열에 실제 직급 대신 소속 검사
-// 구역(IQC/PQC/OQC/OQC(SPL)/RMA)을 적어두는 경우가 있다. 이런 값들은
-// 모두 조직도의 최하위 직급인 "Inspector"로 정규화해 등록한다.
-const POSITION_VALUE_ALIASES = {
-  Inspector: ["IQC", "PQC", "OQC", "OQC(SPL)", "OQC SPL", "RMA"],
-};
+// 직급(chức vụ) 값으로 인식하는 것은 이 8가지뿐이다. IQC/PQC/OQC/RMA는
+// 검사 구역을 뜻하는 직급으로, 값 자체는 그대로 저장해 전체 명단에는
+// IQC/PQC/OQC/RMA로 보이지만 조직도에서는 Inspector로 표시된다
+// (orgPositionLabel 참고).
+const EXCEL_POSITIONS = ["Manager", "Supervisor 1", "Supervisor 2", "Staff", "IQC", "PQC", "OQC", "RMA"];
 function normalizePositionValue(raw) {
   const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
   if (!norm) return null;
-  for (const p of POSITIONS) {
-    const candidates = [p, ...(POSITION_VALUE_ALIASES[p] || [])];
-    if (candidates.some((c) => c.toUpperCase().replace(/[\s_\-()]/g, "") === norm)) return p;
-  }
-  return null;
+  const match = EXCEL_POSITIONS.find((p) => p.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
+  return match || null;
 }
 
 // 실제 업로드 파일은 시트 이름(또는 시트 안의 제목 셀)이 "Xưởng 1"/"Xưởng 2"
@@ -1411,8 +1422,15 @@ function ExcelUploadModal({ setOrg, defaultFactory, onClose, onRegistered }) {
           const name = String(r[colMap.name] ?? "").trim();
           const deptRaw = String(r[colMap.dept] ?? "").trim();
           const posRaw = String(r[colMap.position] ?? "").trim();
-          const dept = normalizeDeptValue(deptRaw);
           const position = normalizePositionValue(posRaw);
+          let dept = normalizeDeptValue(deptRaw);
+          // 직급이 "PQC"면 부서 열은 UNIT/ASSY 구분 표기로 취급해 어느
+          // PQC 팀인지 결정한다 (일반 부서명 매칭 결과를 덮어쓴다).
+          if (position === "PQC") {
+            const normDeptRaw = normalizeForMatch(deptRaw);
+            if (normDeptRaw.includes("unit")) dept = "PQC UNIT";
+            else if (normDeptRaw.includes("assy")) dept = "PQC ASSY";
+          }
           const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
 
           const reasons = [];
@@ -1666,6 +1684,7 @@ export default function QualityPortal() {
   const [showUpload, setShowUpload] = useState(false);
   const [listEditing, setListEditing] = useState(false);
   const [editingListId, setEditingListId] = useState(null);
+  const [selectedListIds, setSelectedListIds] = useState(() => new Set());
 
   // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
   useEffect(() => {
@@ -1771,6 +1790,38 @@ export default function QualityPortal() {
     });
   };
 
+  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원 항목이 섞여
+  // 있어도 factory별로 heads와 members에서 각각 걸러낸다.
+  const deleteListEntries = (entries) => {
+    const idSet = new Set(entries.map((e) => e.id));
+    setOrg((prev) => {
+      const next = { ...prev };
+      [1, 2].forEach((f) => {
+        const factoryData = next[f];
+        next[f] = {
+          ...factoryData,
+          heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
+          teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) })),
+        };
+      });
+      return next;
+    });
+  };
+
+  // 필터와 무관하게 1공장·2공장의 부서장과 모든 팀원을 통째로 비운다
+  // (팀/부서 카드 구조 자체는 남겨둔다). 되돌릴 수 없는 작업이다.
+  const clearAllEmployees = () => {
+    setOrg((prev) => {
+      const next = {};
+      [1, 2].forEach((f) => {
+        next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })) };
+      });
+      return next;
+    });
+    setSelectedListIds(new Set());
+    setEditingListId(null);
+  };
+
   const FactoryBtn = ({ value, label }) => (
     <button
       onClick={() => setFactory(value)}
@@ -1831,12 +1882,44 @@ export default function QualityPortal() {
 
   // 전체 명단 표의 컬럼 폭. 직급 라벨이 "Upper Manager" 등 영문으로 길어져
   // 기존 100px로는 잘려 보였으므로 넉넉하게 넓혔다 (헤더/데이터 행 동일하게 유지).
-  // 수정 모드일 때는 끝에 수정/삭제 아이콘을 위한 칸을 추가한다.
+  // 수정 모드일 때는 앞에 선택 체크박스, 끝에 수정/삭제 아이콘 칸을 추가한다.
   const LIST_GRID_COLUMNS = listEditing
-    ? "90px 1fr 130px 70px 1.2fr 110px 70px"
+    ? "24px 90px 1fr 130px 70px 1.2fr 110px 70px"
     : "90px 1fr 130px 70px 1.2fr 110px";
 
   const listLocked = listEditing && editingListId !== null;
+
+  // 삭제 가능한(마지막 남은 부서장이 아닌) 항목만 선택 대상으로 삼는다.
+  const selectableIds = useMemo(
+    () => new Set(filteredList.filter((e) => !e.isHead || e.headCountInFactory > 1).map((e) => e.id)),
+    [filteredList]
+  );
+  const allSelected = selectableIds.size > 0 && [...selectableIds].every((id) => selectedListIds.has(id));
+  const toggleSelectAll = () => {
+    setSelectedListIds((prev) => {
+      if (allSelected) return new Set();
+      return new Set(selectableIds);
+    });
+  };
+  const toggleSelectOne = (id) => {
+    setSelectedListIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const handleDeleteSelected = () => {
+    const entries = filteredList.filter((e) => selectedListIds.has(e.id));
+    if (entries.length === 0) return;
+    if (confirm(t(lang, "confirmDeleteSelected", entries.length))) {
+      deleteListEntries(entries);
+      setSelectedListIds(new Set());
+    }
+  };
+  const handleDeleteAll = () => {
+    if (confirm(t(lang, "confirmDeleteAll"))) clearAllEmployees();
+  };
 
   return (
     <LangContext.Provider value={langCtx}>
@@ -1961,6 +2044,7 @@ export default function QualityPortal() {
                   <button
                     onClick={() => {
                       if (listLocked) return;
+                      if (listEditing) setSelectedListIds(new Set());
                       setListEditing((v) => !v);
                     }}
                     disabled={listLocked}
@@ -1981,6 +2065,42 @@ export default function QualityPortal() {
                     <span aria-hidden="true" style={{ marginRight: 4 }}>✎</span>
                     {listEditing ? t(lang, "editDone") : t(lang, "edit")}
                   </button>
+                  {listEditing && selectedListIds.size > 0 && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      style={{
+                        height: 30,
+                        padding: "0 12px",
+                        borderRadius: 6,
+                        border: `0.5px solid ${COLORS.danger}`,
+                        background: COLORS.dangerBg,
+                        color: COLORS.danger,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t(lang, "deleteSelected", selectedListIds.size)}
+                    </button>
+                  )}
+                  {listEditing && (
+                    <button
+                      onClick={handleDeleteAll}
+                      style={{
+                        height: 30,
+                        padding: "0 12px",
+                        borderRadius: 6,
+                        border: `0.5px solid ${COLORS.danger}`,
+                        background: COLORS.card,
+                        color: COLORS.danger,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t(lang, "deleteAll")}
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowUpload(true)}
                     style={{
@@ -2019,6 +2139,15 @@ export default function QualityPortal() {
                     padding: "0 10px 4px",
                   }}
                 >
+                  {listEditing && (
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      style={{ margin: 0 }}
+                      title={t(lang, "deleteSelected", selectedListIds.size)}
+                    />
+                  )}
                   <span>{t(lang, "colEmpNo")}</span>
                   <span>{t(lang, "colNameTeam")}</span>
                   <span>{t(lang, "colPosition")}</span>
@@ -2066,6 +2195,15 @@ export default function QualityPortal() {
                         borderLeft: `3px solid ${meta.color}`,
                       }}
                     >
+                      {listEditing && (
+                        <input
+                          type="checkbox"
+                          checked={selectedListIds.has(e.id)}
+                          disabled={!canDelete}
+                          onChange={() => toggleSelectOne(e.id)}
+                          style={{ margin: 0 }}
+                        />
+                      )}
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.empNo}</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{e.name}</div>
