@@ -233,6 +233,9 @@ const nextId = () => idSeq++;
 // qcMembers: 부서(bộ phận)가 "QC"로만 적혀 있어 특정 팀 카드에 넣을 수
 // 없는 인원 목록 — 전체 명단에는 "QC" 소속으로 나오고, 조직도에는 맨 끝의
 // 고정 "Staff" 카드(직급별 tier로 묶여서 표시)에서만 보여진다.
+// middleCard: 부서장 카드 스택과 팀 카드 행 사이에 단독으로 표시되는 카드
+// 하나. 제목과 소속 인원을 사용자가 자유롭게 수정할 수 있다.
+const newMiddleCard = () => ({ id: nextId(), title: "새 카드", members: [] });
 const seedFactory = (factory, headsInfo, teamsSeed) => {
   const teams = teamsSeed.map((t) => ({
     id: nextId(),
@@ -240,7 +243,7 @@ const seedFactory = (factory, headsInfo, teamsSeed) => {
     members: t.members.map((m) => ({ id: nextId(), ...m, factory })),
   }));
   const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
-  return { heads, teams, qcMembers: [] };
+  return { heads, teams, qcMembers: [], middleCard: newMiddleCard() };
 };
 
 const initialOrg = {
@@ -345,6 +348,12 @@ function collectMaxId(org) {
     (factoryData.qcMembers || []).forEach((m) => {
       if (m.id > max) max = m.id;
     });
+    if (factoryData.middleCard) {
+      if (factoryData.middleCard.id > max) max = factoryData.middleCard.id;
+      (factoryData.middleCard.members || []).forEach((m) => {
+        if (m.id > max) max = m.id;
+      });
+    }
   });
   return max;
 }
@@ -363,6 +372,22 @@ function migrateLegacyTeamNames(org) {
   return changed ? next : org;
 }
 
+// 예전 버전에서 저장된 데이터에는 middleCard(부서장-팀 카드 사이 단독 카드)가
+// 없으므로, 불러올 때 없으면 새로 채워 넣는다.
+function ensureMiddleCard(org) {
+  let changed = false;
+  const next = {};
+  Object.entries(org).forEach(([factory, data]) => {
+    if (data.middleCard) {
+      next[factory] = data;
+    } else {
+      changed = true;
+      next[factory] = { ...data, middleCard: newMiddleCard() };
+    }
+  });
+  return changed ? next : org;
+}
+
 function loadInitialOrg() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -370,7 +395,7 @@ function loadInitialOrg() {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
     idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-    return migrateLegacyTeamNames(parsed);
+    return ensureMiddleCard(migrateLegacyTeamNames(parsed));
   } catch {
     return initialOrg;
   }
@@ -966,6 +991,15 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
     }));
   };
 
+  // 부서장 카드 스택과 팀 카드 행 사이의 단독 카드(middleCard) 업데이트 헬퍼.
+  // 제목과 소속 인원을 사용자가 자유롭게 수정할 수 있다.
+  const updateMiddleCard = (updater) => {
+    setOrg((prev) => ({
+      ...prev,
+      [factory]: { ...prev[factory], middleCard: updater(prev[factory].middleCard || newMiddleCard()) },
+    }));
+  };
+
   const addTeam = () => {
     updateTeams((teams) => [...teams, { id: nextId(), title: "새 팀", members: [] }]);
   };
@@ -1052,27 +1086,42 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
                   onClick={isEditing ? () => setEditingHeadId(h.id) : undefined}
                   title={isEditing ? t(lang, "headClickDragTitle") : t(lang, "headDragTitle")}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 8px",
-                    borderRadius: 6,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
                     background: COLORS.card,
-                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderLeft: `3px solid ${tc.color}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1,
                   }}
                 >
-                  <span aria-hidden="true" style={{ opacity: 0.5, fontSize: 12, flexShrink: 0 }}>
-                    ⠿
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: "#000000" }}>{trHeadPosition(h.position, lang)}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{h.name}</div>
+                  <div
+                    style={{
+                      background: COLORS.headDark,
+                      color: "#fff",
+                      padding: "8px 10px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12, flexShrink: 0 }}>
+                      ⠿
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{t(lang, "headTeamLabel")}</span>
+                  </div>
+                  <div style={{ padding: 8 }}>
+                    <div
+                      style={{
+                        border: `0.5px solid ${tc.border}`,
+                        borderRadius: 8,
+                        padding: 6,
+                        background: tc.bg,
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: "#000000" }}>{trHeadPosition(h.position, lang)}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{h.name}</div>
+                    </div>
                   </div>
                 </div>
                 {isEditing && data.heads.length > 1 && (
@@ -1144,20 +1193,32 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
           ))}
       </div>
 
-      {/* 부서장 카드 스택과 팀 카드 행 사이의 빈 카드 틀. 이름/데이터 없이
-          자리만 차지하는 고정 플레이스홀더다. */}
-      <div style={{ width: 1, height: 14, background: COLORS.borderStrong }} />
-      <div
-        style={{
-          width: 260,
-          maxWidth: "100%",
-          minHeight: 54,
-          borderRadius: 8,
-          border: `0.5px solid ${COLORS.border}`,
-          background: COLORS.card,
-          boxSizing: "border-box",
-        }}
-      />
+      {/* 부서장 카드 스택과 팀 카드 행 사이의 단독 카드. 제목과 소속 인원을
+          자유롭게 수정할 수 있는 실제 카드다 (팀 카드와 같은 컴포넌트 재사용). */}
+      <div style={{ width: 260, maxWidth: "100%" }}>
+        <TeamCard
+          team={data.middleCard || newMiddleCard()}
+          isEditing={isEditing}
+          onDirtyChange={(d) => handleTeamDirtyChange("middle-card", d)}
+          headerColor={COLORS.headDark}
+          deletable={false}
+          onUpdateTitle={(title) => updateMiddleCard((mc) => ({ ...mc, title }))}
+          onAddMember={(d) =>
+            updateMiddleCard((mc) => ({ ...mc, members: [...mc.members, { id: nextId(), ...d, factory, status: "출근" }] }))
+          }
+          onEditMember={(memberId, d) =>
+            updateMiddleCard((mc) => ({
+              ...mc,
+              members: mc.members.map((m) => (m.id === memberId ? { ...m, ...d } : m)),
+            }))
+          }
+          onDeleteMember={(memberId) => {
+            if (confirm(t(lang, "confirmDeleteMember"))) {
+              updateMiddleCard((mc) => ({ ...mc, members: mc.members.filter((m) => m.id !== memberId) }));
+            }
+          }}
+        />
+      </div>
 
       <div style={{ width: 1, height: 18, background: COLORS.borderStrong }} />
       <div style={{ width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page }} />
@@ -1822,6 +1883,9 @@ export default function QualityPortal() {
         t.members.forEach((m) => list.push({ ...m, team: t.title, teamId: t.id }));
       });
       (d.qcMembers || []).forEach((m) => list.push({ ...m, team: "QC", isQc: true }));
+      if (d.middleCard) {
+        d.middleCard.members.forEach((m) => list.push({ ...m, team: d.middleCard.title, isMiddleCard: true }));
+      }
     });
     return list;
   }, [org]);
@@ -1879,6 +1943,18 @@ export default function QualityPortal() {
           },
         };
       }
+      if (entry.isMiddleCard) {
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            middleCard: {
+              ...factoryData.middleCard,
+              members: factoryData.middleCard.members.map((m) => (m.id === entry.id ? { ...m, ...data } : m)),
+            },
+          },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -1903,6 +1979,15 @@ export default function QualityPortal() {
           [entry.factory]: { ...factoryData, qcMembers: (factoryData.qcMembers || []).filter((m) => m.id !== entry.id) },
         };
       }
+      if (entry.isMiddleCard) {
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            middleCard: { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => m.id !== entry.id) },
+          },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -1915,8 +2000,8 @@ export default function QualityPortal() {
     });
   };
 
-  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원/QC 항목이 섞여
-  // 있어도 factory별로 heads·members·qcMembers에서 각각 걸러낸다.
+  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원/QC/단독카드 항목이
+  // 섞여 있어도 factory별로 heads·members·qcMembers·middleCard에서 각각 걸러낸다.
   const deleteListEntries = (entries) => {
     const idSet = new Set(entries.map((e) => e.id));
     setOrg((prev) => {
@@ -1928,6 +2013,9 @@ export default function QualityPortal() {
           heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
           teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) })),
           qcMembers: (factoryData.qcMembers || []).filter((m) => !idSet.has(m.id)),
+          middleCard: factoryData.middleCard
+            ? { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => !idSet.has(m.id)) }
+            : factoryData.middleCard,
         };
       });
       return next;
@@ -1940,7 +2028,13 @@ export default function QualityPortal() {
     setOrg((prev) => {
       const next = {};
       [1, 2].forEach((f) => {
-        next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })), qcMembers: [] };
+        next[f] = {
+          ...prev[f],
+          heads: [],
+          teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })),
+          qcMembers: [],
+          middleCard: prev[f].middleCard ? { ...prev[f].middleCard, members: [] } : prev[f].middleCard,
+        };
       });
       return next;
     });

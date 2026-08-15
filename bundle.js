@@ -34274,6 +34274,7 @@
   }
   var idSeq = 1e3;
   var nextId = () => idSeq++;
+  var newMiddleCard = () => ({ id: nextId(), title: "\uC0C8 \uCE74\uB4DC", members: [] });
   var seedFactory = (factory, headsInfo, teamsSeed) => {
     const teams = teamsSeed.map((t2) => ({
       id: nextId(),
@@ -34281,7 +34282,7 @@
       members: t2.members.map((m) => ({ id: nextId(), ...m, factory }))
     }));
     const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
-    return { heads, teams, qcMembers: [] };
+    return { heads, teams, qcMembers: [], middleCard: newMiddleCard() };
   };
   var initialOrg = {
     1: seedFactory(
@@ -34377,6 +34378,12 @@
       (factoryData.qcMembers || []).forEach((m) => {
         if (m.id > max) max = m.id;
       });
+      if (factoryData.middleCard) {
+        if (factoryData.middleCard.id > max) max = factoryData.middleCard.id;
+        (factoryData.middleCard.members || []).forEach((m) => {
+          if (m.id > max) max = m.id;
+        });
+      }
     });
     return max;
   }
@@ -34391,6 +34398,19 @@
     });
     return changed ? next : org;
   }
+  function ensureMiddleCard(org) {
+    let changed = false;
+    const next = {};
+    Object.entries(org).forEach(([factory, data]) => {
+      if (data.middleCard) {
+        next[factory] = data;
+      } else {
+        changed = true;
+        next[factory] = { ...data, middleCard: newMiddleCard() };
+      }
+    });
+    return changed ? next : org;
+  }
   function loadInitialOrg() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -34398,7 +34418,7 @@
       const parsed = JSON.parse(raw);
       if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
       idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-      return migrateLegacyTeamNames(parsed);
+      return ensureMiddleCard(migrateLegacyTeamNames(parsed));
     } catch {
       return initialOrg;
     }
@@ -34937,6 +34957,12 @@
         [factory]: { ...prev[factory], qcMembers: updater(prev[factory].qcMembers || []) }
       }));
     };
+    const updateMiddleCard = (updater) => {
+      setOrg((prev) => ({
+        ...prev,
+        [factory]: { ...prev[factory], middleCard: updater(prev[factory].middleCard || newMiddleCard()) }
+      }));
+    };
     const addTeam = () => {
       updateTeams((teams) => [...teams, { id: nextId(), title: "\uC0C8 \uD300", members: [] }]);
     };
@@ -35013,26 +35039,47 @@
                   onClick: isEditing ? () => setEditingHeadId(h.id) : void 0,
                   title: isEditing ? t(lang, "headClickDragTitle") : t(lang, "headDragTitle"),
                   style: {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 8px",
-                    borderRadius: 6,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
                     background: COLORS.card,
-                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
-                    borderLeft: `3px solid ${tc.color}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.5, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "#000000" }, children: trHeadPosition(h.position, lang) }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: h.name })
-                    ] })
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "div",
+                      {
+                        style: {
+                          background: COLORS.headDark,
+                          color: "#fff",
+                          padding: "8px 10px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6
+                        },
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 13, fontWeight: 500 }, children: t(lang, "headTeamLabel") })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "div",
+                      {
+                        style: {
+                          border: `0.5px solid ${tc.border}`,
+                          borderRadius: 8,
+                          padding: 6,
+                          background: tc.bg
+                        },
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "#000000" }, children: trHeadPosition(h.position, lang) }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: h.name })
+                        ]
+                      }
+                    ) })
                   ]
                 }
               ),
@@ -35102,21 +35149,27 @@
           )
         ] }))
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 14, background: COLORS.borderStrong } }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        "div",
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        TeamCard,
         {
-          style: {
-            width: 260,
-            maxWidth: "100%",
-            minHeight: 54,
-            borderRadius: 8,
-            border: `0.5px solid ${COLORS.border}`,
-            background: COLORS.card,
-            boxSizing: "border-box"
+          team: data.middleCard || newMiddleCard(),
+          isEditing,
+          onDirtyChange: (d) => handleTeamDirtyChange("middle-card", d),
+          headerColor: COLORS.headDark,
+          deletable: false,
+          onUpdateTitle: (title) => updateMiddleCard((mc) => ({ ...mc, title })),
+          onAddMember: (d) => updateMiddleCard((mc) => ({ ...mc, members: [...mc.members, { id: nextId(), ...d, factory, status: "\uCD9C\uADFC" }] })),
+          onEditMember: (memberId, d) => updateMiddleCard((mc) => ({
+            ...mc,
+            members: mc.members.map((m) => m.id === memberId ? { ...m, ...d } : m)
+          })),
+          onDeleteMember: (memberId) => {
+            if (confirm(t(lang, "confirmDeleteMember"))) {
+              updateMiddleCard((mc) => ({ ...mc, members: mc.members.filter((m) => m.id !== memberId) }));
+            }
           }
         }
-      ),
+      ) }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 18, background: COLORS.borderStrong } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", borderTop: `2px solid ${COLORS.borderStrong}`, marginTop: 0 } }),
@@ -35669,6 +35722,9 @@
           t2.members.forEach((m) => list.push({ ...m, team: t2.title, teamId: t2.id }));
         });
         (d.qcMembers || []).forEach((m) => list.push({ ...m, team: "QC", isQc: true }));
+        if (d.middleCard) {
+          d.middleCard.members.forEach((m) => list.push({ ...m, team: d.middleCard.title, isMiddleCard: true }));
+        }
       });
       return list;
     }, [org]);
@@ -35710,6 +35766,18 @@
             }
           };
         }
+        if (entry.isMiddleCard) {
+          return {
+            ...prev,
+            [entry.factory]: {
+              ...factoryData,
+              middleCard: {
+                ...factoryData.middleCard,
+                members: factoryData.middleCard.members.map((m) => m.id === entry.id ? { ...m, ...data } : m)
+              }
+            }
+          };
+        }
         return {
           ...prev,
           [entry.factory]: {
@@ -35733,6 +35801,15 @@
             [entry.factory]: { ...factoryData, qcMembers: (factoryData.qcMembers || []).filter((m) => m.id !== entry.id) }
           };
         }
+        if (entry.isMiddleCard) {
+          return {
+            ...prev,
+            [entry.factory]: {
+              ...factoryData,
+              middleCard: { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => m.id !== entry.id) }
+            }
+          };
+        }
         return {
           ...prev,
           [entry.factory]: {
@@ -35754,7 +35831,8 @@
             ...factoryData,
             heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
             teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) })),
-            qcMembers: (factoryData.qcMembers || []).filter((m) => !idSet.has(m.id))
+            qcMembers: (factoryData.qcMembers || []).filter((m) => !idSet.has(m.id)),
+            middleCard: factoryData.middleCard ? { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => !idSet.has(m.id)) } : factoryData.middleCard
           };
         });
         return next;
@@ -35764,7 +35842,13 @@
       setOrg((prev) => {
         const next = {};
         [1, 2].forEach((f) => {
-          next[f] = { ...prev[f], heads: [], teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })), qcMembers: [] };
+          next[f] = {
+            ...prev[f],
+            heads: [],
+            teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })),
+            qcMembers: [],
+            middleCard: prev[f].middleCard ? { ...prev[f].middleCard, members: [] } : prev[f].middleCard
+          };
         });
         return next;
       });
