@@ -293,6 +293,40 @@ const initialOrg = {
 // localStorage에만 저장된다(다른 기기·다른 브라우저와는 공유되지 않음).
 const STORAGE_KEY = "qualityPortal.org.v1";
 const LANG_STORAGE_KEY = "qualityPortal.lang.v1";
+const RESET_DATE_KEY = "qualityPortal.lastResetDate.v1";
+
+// 로컬 날짜를 "YYYY-MM-DD"로 반환한다 (returnDate 저장 형식과 동일해 문자열
+// 비교로 날짜 선후를 판단할 수 있다).
+function todayISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// 자정이 지나면 "오늘 상태"를 전부 출근으로 되돌린다. 다만 복귀예정일이
+// 아직 지나지 않은 출산휴가는 매일 다시 입력할 필요가 없도록 그대로 둔다.
+function resetStatusesForNewDay(org, todayISO) {
+  let changed = false;
+  const resetMember = (m) => {
+    if (m.status === "출산휴가" && m.returnDate && m.returnDate > todayISO) return m;
+    if (m.status === "출근" && !m.note && !m.returnDate) return m;
+    changed = true;
+    const { note, returnDate, ...rest } = m;
+    return { ...rest, status: "출근" };
+  };
+  const next = {};
+  Object.entries(org).forEach(([factory, data]) => {
+    next[factory] = {
+      ...data,
+      teams: data.teams.map((tm) => ({ ...tm, members: tm.members.map(resetMember) })),
+      qcMembers: (data.qcMembers || []).map(resetMember),
+      middleCard: data.middleCard ? { ...data.middleCard, members: data.middleCard.members.map(resetMember) } : data.middleCard,
+    };
+  });
+  return changed ? next : org;
+}
 
 // 저장된 데이터에 이미 쓰인 id보다 새로 만들 id가 작아 충돌하지 않도록,
 // 불러온 데이터 안의 모든 id 중 최댓값을 찾아 idSeq를 그 이후로 맞춘다.
@@ -1763,6 +1797,48 @@ export default function QualityPortal() {
     }
   }, [lang]);
 
+  // 날짜가 바뀌면(자정이 지나면) "오늘 상태"를 출근으로 초기화한다. 앱을
+  // 새로 열었을 때 날짜가 이미 바뀌어 있으면 즉시 한 번 처리하고, 앱을 켜둔
+  // 채로 자정을 넘기는 경우를 위해 다음 자정 시각에 맞춰 타이머도 예약한다.
+  useEffect(() => {
+    const runResetIfNewDay = () => {
+      const todayISO = todayISODate();
+      let lastReset = null;
+      try {
+        lastReset = localStorage.getItem(RESET_DATE_KEY);
+      } catch {
+        // 무시
+      }
+      if (lastReset !== todayISO) {
+        // lastReset이 아예 없던 첫 실행(처음 방문/마이그레이션 이전 데이터)에는
+        // 기존 상태를 건드리지 않고 오늘 날짜만 기록해 그 다음 날부터 초기화되게 한다.
+        if (lastReset !== null) {
+          setOrg((prev) => resetStatusesForNewDay(prev, todayISO));
+        }
+        try {
+          localStorage.setItem(RESET_DATE_KEY, todayISO);
+        } catch {
+          // 무시
+        }
+      }
+    };
+
+    runResetIfNewDay();
+
+    let timeoutId;
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+      timeoutId = setTimeout(() => {
+        runResetIfNewDay();
+        scheduleNextMidnight();
+      }, nextMidnight.getTime() - now.getTime());
+    };
+    scheduleNextMidnight();
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   const langCtx = useMemo(() => ({ lang, setLang, t: (key, ...args) => t(lang, key, ...args) }), [lang]);
 
   const allEmployees = useMemo(() => {
@@ -2289,7 +2365,6 @@ export default function QualityPortal() {
                   const meta = STATUS_META[e.status];
                   let note = "-";
                   if (e.status !== "출근" && e.status !== "출산휴가" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
-                  if (e.status === "출산휴가" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
                   const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
                   const canDelete = !e.isHead || e.headCountInFactory > 1;
                   return (
@@ -2322,7 +2397,27 @@ export default function QualityPortal() {
                       </div>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.position}</span>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "factoryLabel", e.factory)}</span>
-                      <span style={{ fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</span>
+                      {e.status === "출산휴가" ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                          <span style={{ fontSize: 11, color: COLORS.textSecondary, whiteSpace: "nowrap" }}>{t(lang, "returnDatePrefix")}</span>
+                          <input
+                            type="date"
+                            value={e.returnDate || ""}
+                            onChange={(ev) => updateListEntry(e, { returnDate: ev.target.value })}
+                            style={{
+                              fontSize: 12,
+                              padding: "2px 4px",
+                              borderRadius: 4,
+                              border: `0.5px solid ${COLORS.border}`,
+                              color: COLORS.textPrimary,
+                              background: COLORS.card,
+                              minWidth: 0,
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</span>
+                      )}
                       <div style={{ textAlign: "right" }}>
                         <select
                           value={e.status}

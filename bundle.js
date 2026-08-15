@@ -34324,6 +34324,34 @@
   };
   var STORAGE_KEY = "qualityPortal.org.v1";
   var LANG_STORAGE_KEY = "qualityPortal.lang.v1";
+  var RESET_DATE_KEY = "qualityPortal.lastResetDate.v1";
+  function todayISODate() {
+    const d = /* @__PURE__ */ new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function resetStatusesForNewDay(org, todayISO) {
+    let changed = false;
+    const resetMember = (m) => {
+      if (m.status === "\uCD9C\uC0B0\uD734\uAC00" && m.returnDate && m.returnDate > todayISO) return m;
+      if (m.status === "\uCD9C\uADFC" && !m.note && !m.returnDate) return m;
+      changed = true;
+      const { note, returnDate, ...rest } = m;
+      return { ...rest, status: "\uCD9C\uADFC" };
+    };
+    const next = {};
+    Object.entries(org).forEach(([factory, data]) => {
+      next[factory] = {
+        ...data,
+        teams: data.teams.map((tm) => ({ ...tm, members: tm.members.map(resetMember) })),
+        qcMembers: (data.qcMembers || []).map(resetMember),
+        middleCard: data.middleCard ? { ...data.middleCard, members: data.middleCard.members.map(resetMember) } : data.middleCard
+      };
+    });
+    return changed ? next : org;
+  }
   function collectMaxId(org) {
     let max = 0;
     Object.values(org).forEach((factoryData) => {
@@ -35611,6 +35639,37 @@
       } catch {
       }
     }, [lang]);
+    (0, import_react.useEffect)(() => {
+      const runResetIfNewDay = () => {
+        const todayISO = todayISODate();
+        let lastReset = null;
+        try {
+          lastReset = localStorage.getItem(RESET_DATE_KEY);
+        } catch {
+        }
+        if (lastReset !== todayISO) {
+          if (lastReset !== null) {
+            setOrg((prev) => resetStatusesForNewDay(prev, todayISO));
+          }
+          try {
+            localStorage.setItem(RESET_DATE_KEY, todayISO);
+          } catch {
+          }
+        }
+      };
+      runResetIfNewDay();
+      let timeoutId;
+      const scheduleNextMidnight = () => {
+        const now = /* @__PURE__ */ new Date();
+        const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+        timeoutId = setTimeout(() => {
+          runResetIfNewDay();
+          scheduleNextMidnight();
+        }, nextMidnight.getTime() - now.getTime());
+      };
+      scheduleNextMidnight();
+      return () => clearTimeout(timeoutId);
+    }, []);
     const langCtx = (0, import_react.useMemo)(() => ({ lang, setLang, t: (key, ...args) => t(lang, key, ...args) }), [lang]);
     const allEmployees = (0, import_react.useMemo)(() => {
       const list = [];
@@ -36080,7 +36139,6 @@
               const meta = STATUS_META[e.status];
               let note = "-";
               if (e.status !== "\uCD9C\uADFC" && e.status !== "\uCD9C\uC0B0\uD734\uAC00" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
-              if (e.status === "\uCD9C\uC0B0\uD734\uAC00" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
               const teamLabel = e.team === "\uBD80\uC11C\uC7A5" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
               const canDelete = !e.isHead || e.headCountInFactory > 1;
               return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -36114,7 +36172,26 @@
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.position }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: t(lang, "factoryLabel", e.factory) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: note }),
+                    e.status === "\uCD9C\uC0B0\uD734\uAC00" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 4, minWidth: 0 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 11, color: COLORS.textSecondary, whiteSpace: "nowrap" }, children: t(lang, "returnDatePrefix") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "input",
+                        {
+                          type: "date",
+                          value: e.returnDate || "",
+                          onChange: (ev) => updateListEntry(e, { returnDate: ev.target.value }),
+                          style: {
+                            fontSize: 12,
+                            padding: "2px 4px",
+                            borderRadius: 4,
+                            border: `0.5px solid ${COLORS.border}`,
+                            color: COLORS.textPrimary,
+                            background: COLORS.card,
+                            minWidth: 0
+                          }
+                        }
+                      )
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: note }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "select",
                       {
