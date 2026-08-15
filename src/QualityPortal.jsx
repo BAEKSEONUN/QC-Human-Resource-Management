@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
+import * as XLSX from "xlsx";
 
 // 이 앱이 관리하는 공장 번호 목록. 지금은 1공장만 운영한다(2공장은 제거됨).
 const FACTORIES = [1];
@@ -68,14 +69,11 @@ const deptRank = (team) => {
   return idx === -1 ? DEPT_ORDER.length : idx;
 };
 
-// 직급 값이 검사 구역(IQC/PQC/OQC/RMA)으로 적혀 있는 경우, 서열
-// 계산에서는 Inspector와 동일하게 취급한다.
-const POSITION_RANK_ALIASES = { IQC: "Inspector", PQC: "Inspector", OQC: "Inspector", RMA: "Inspector" };
+// POSITIONS 목록에 없는 직급 값(엑셀에서 그대로 가져온 인식 안 되는
+// 문구 등)은 Inspector와 같은 서열로 취급한다.
 const positionRank = (position) => {
-  const canonical = POSITION_RANK_ALIASES[position] || position;
-  const idx = POSITIONS.indexOf(canonical);
-  // 목록에 없는 직급(부서장 등)은 최고 서열로 취급해 최상단에 표시
-  return idx === -1 ? POSITIONS.length : idx;
+  const idx = POSITIONS.indexOf(position);
+  return idx === -1 ? POSITIONS.indexOf("Inspector") : idx;
 };
 
 // 같은 부서끼리 묶고, 부서 안에서는 직급이 높은 순으로 정렬
@@ -172,6 +170,39 @@ const DICT = {
   colStatus: { ko: "오늘 상태", vi: "Trạng thái hôm nay" },
   headTeamLabel: { ko: "부서장", vi: "Trưởng phòng" },
   teamOverall: { ko: "현지총괄관리자", vi: "Tổng quản lý tại chỗ" },
+  uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
+  uploadModalTitle: { ko: "엑셀로 명단 업로드", vi: "Tải danh sách từ Excel" },
+  uploadHint: {
+    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서), Chức vụ(직급) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. bộ phận이 QC이고 Chức vụ가 Manager면 품질부서장 밑 카드에, PQC UNIT/UNIT이면 PQC UNIT에, PQC ASSY/ASSY면 PQC ASSY에 등록됩니다. Chức vụ가 Staff면 부서와 무관하게 맨 끝의 Staff 카드에 등록됩니다. Manager/Supervisor 1/Supervisor 2/Staff가 아닌 직급값은 전체 명단에는 그대로, 조직도에는 Inspector로 표시됩니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận, Chức vụ. Nếu bộ phận là QC và Chức vụ là Manager sẽ được thêm vào thẻ ngay dưới trưởng phòng chất lượng; PQC UNIT/UNIT vào PQC UNIT; PQC ASSY/ASSY vào PQC ASSY. Nếu Chức vụ là Staff sẽ vào thẻ Staff ở cuối bất kể bộ phận nào. Chức vụ khác Manager/Supervisor 1/Supervisor 2/Staff sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
+  },
+  uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
+  uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
+  uploadColumnsNotFound: {
+    ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
+    vi: (cols) => `Không tìm thấy các cột: ${cols}`,
+  },
+  uploadEmptyFile: { ko: "파일에서 데이터를 찾을 수 없습니다.", vi: "Không tìm thấy dữ liệu trong tệp." },
+  uploadPreview: { ko: (n) => `미리보기 (${n}건)`, vi: (n) => `Xem trước (${n} dòng)` },
+  uploadValidCount: { ko: (n) => `등록 가능 ${n}건`, vi: (n) => `Có thể đăng ký: ${n}` },
+  uploadInvalidCount: { ko: (n) => `식별 실패 ${n}건`, vi: (n) => `Không xác định: ${n}` },
+  uploadColRow: { ko: "행", vi: "Dòng" },
+  uploadColReason: { ko: "사유", vi: "Lý do" },
+  uploadRegisterBtn: { ko: (n) => `등록 (${n}건)`, vi: (n) => `Đăng ký (${n})` },
+  uploadClose: { ko: "닫기", vi: "Đóng" },
+  uploadResultDone: {
+    ko: (ok, fail) => (fail > 0 ? `${ok}건 등록 완료, ${fail}건 식별 실패로 제외됨` : `${ok}건 등록 완료`),
+    vi: (ok, fail) => (fail > 0 ? `Đã đăng ký ${ok} dòng, ${fail} dòng bị loại do không xác định` : `Đã đăng ký ${ok} dòng`),
+  },
+  uploadReasonMissing: { ko: (field) => `${field} 값이 비어 있음`, vi: (field) => `Thiếu giá trị ${field}` },
+  uploadReasonDept: {
+    ko: (v) => `부서를 확인할 수 없음: "${v}"`,
+    vi: (v) => `Không xác định được bộ phận: "${v}"`,
+  },
+  uploadReasonDuplicate: {
+    ko: (v) => `이미 등록된 사번(중복): "${v}"`,
+    vi: (v) => `Mã NV đã tồn tại (trùng lặp): "${v}"`,
+  },
 };
 
 const LangContext = createContext({ lang: "ko", t: (key) => key });
@@ -612,13 +643,10 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
 
 // 직급을 Manager / Supervisor / Staff / Inspector 4단계로 묶어서 보여준다.
 // (Manager: Manager·Upper Manager, Supervisor: Supervisor 1·2, Staff는 별도
-// 그룹, Inspector: Inspector 및 검사 구역으로 표기된 IQC/PQC/OQC/RMA)
+// 그룹, Inspector: Inspector 및 이 목록에 없는 그 밖의 모든 직급값 — 주로
+// 엑셀에서 그대로 가져온, 정해진 4개 직급에 안 맞는 문구들이다)
 const POSITION_TIER = {
   Inspector: "Inspector",
-  IQC: "Inspector",
-  PQC: "Inspector",
-  OQC: "Inspector",
-  RMA: "Inspector",
   Staff: "Staff",
   "Supervisor 1": "Supervisor",
   "Supervisor 2": "Supervisor",
@@ -641,17 +669,18 @@ const TIER_COLORS = {
 };
 const tierColorsOf = (tier) => TIER_COLORS[tier] || TIER_COLORS.Inspector;
 
-// 조직도 카드에서는 IQC/PQC/OQC/RMA로 등록된 직급도 검사 인원이라는 뜻으로
+// 조직도 카드에서는 Manager/Upper Manager/Supervisor 1/Supervisor 2/Staff/
+// Inspector 6개 외의 직급값(주로 엑셀에서 그대로 가져온 문구)은 전부
 // "Inspector"라고 표시한다 (전체 명단에서는 원래 값을 그대로 보여준다).
-const INSPECTOR_POSITION_ALIASES = ["IQC", "PQC", "OQC", "RMA"];
-const orgPositionLabel = (position) => (INSPECTOR_POSITION_ALIASES.includes(position) ? "Inspector" : position);
+const KNOWN_POSITION_LABELS = ["Manager", "Upper Manager", "Supervisor 1", "Supervisor 2", "Staff", "Inspector"];
+const orgPositionLabel = (position) => (KNOWN_POSITION_LABELS.includes(position) ? position : "Inspector");
 
 // 팀원을 직급 그룹(Manager/Supervisor/Inspector)으로 묶어 [그룹, 팀원목록] 쌍의
 // 배열로 반환한다 (서열 높은 그룹 먼저, 그룹 안에서도 세부 직급 높은 순)
 function groupByTier(members) {
   const groups = new Map();
   members.forEach((m) => {
-    const tier = POSITION_TIER[m.position] || m.position;
+    const tier = POSITION_TIER[m.position] || "Inspector";
     if (!groups.has(tier)) groups.set(tier, []);
     groups.get(tier).push(m);
   });
@@ -1408,6 +1437,395 @@ function FactoryOrgPanel({ factory, data, setOrg }) {
   );
 }
 
+// ---------- 엑셀 업로드 ----------
+// 헤더 셀 문자열을 비교하기 쉽게 정규화한다 (대소문자/공백/구분자 무시).
+function normalizeHeaderCell(s) {
+  return String(s ?? "").trim().toLowerCase().replace(/[\s_\-./]/g, "");
+}
+
+// MSNV=사번, Họ tên=성명, bộ phận=부서, Chức vụ=직급 (한국어 표기도 함께 인식).
+const COLUMN_ALIASES = {
+  empNo: ["사번", "MSNV"],
+  name: ["성명", "Họ tên"],
+  dept: ["부서", "bộ phận"],
+  position: ["직급", "Chức vụ"],
+};
+
+function detectColumns(headerRow) {
+  const map = {};
+  headerRow.forEach((cell, idx) => {
+    const norm = normalizeHeaderCell(cell);
+    if (!norm) return;
+    Object.entries(COLUMN_ALIASES).forEach(([key, aliases]) => {
+      if (!(key in map) && aliases.some((a) => normalizeHeaderCell(a) === norm)) {
+        map[key] = idx;
+      }
+    });
+  });
+  return map;
+}
+
+// 시트 맨 위가 아니라 몇 줄 아래에 실제 열 헤더가 있을 수 있어, 처음 몇 줄 중
+// 필수 열을 가장 많이 인식하는 행을 헤더로 채택한다.
+function findHeaderRow(rows, maxScan = 5) {
+  let best = { idx: 0, map: {}, count: -1 };
+  for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
+    const map = detectColumns(rows[i]);
+    const count = Object.keys(map).length;
+    if (count > best.count) best = { idx: i, map, count };
+  }
+  return best;
+}
+
+// 부서/직급 값을 비교하기 쉽게 정규화한다 (대소문자/공백/구분자 무시).
+function normalizeForMatch(s) {
+  return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
+}
+
+// chức vụ 값 중 이 4가지만 정확히(대소문자·공백 무시) 인식해 표준 표기로
+// 바꾼다. 그 외 값은 원문 그대로 둔다 — 전체 명단엔 원문이 그대로 보이고,
+// 조직도에서는 Inspector로 표시된다 (orgPositionLabel/POSITION_TIER 참고).
+const MANAGEMENT_POSITIONS = ["Manager", "Supervisor 1", "Supervisor 2", "Staff"];
+function canonicalizePosition(raw) {
+  const norm = normalizeForMatch(raw);
+  const match = MANAGEMENT_POSITIONS.find((p) => normalizeForMatch(p) === norm);
+  return match || String(raw ?? "").trim();
+}
+
+// bộ phận/chức vụ 값을 보고 조직도의 어느 카드에 등록할지 정한다.
+//  1. chức vụ가 Staff면 부서와 무관하게 맨 끝의 고정 Staff 카드로.
+//  2. bộ phận이 QC이고 chức vụ가 Manager면 품질부서장 바로 밑 단독
+//     카드(middleCard)로.
+//  3. bộ phận에 "unit"이 들어 있으면(PQC UNIT, UNIT 등) PQC UNIT 카드로.
+//  4. bộ phận에 "assy"가 들어 있으면(PQC ASSY, ASSY 등) PQC ASSY 카드로.
+//  5. bộ phận이 QC(그 외 직급)면 역시 고정 Staff 카드로 — 소속은 QC 그대로.
+//  6. 그 밖엔 부서명이 현지총괄관리자/IQC/OQC/RMA와 정확히 일치해야 인식.
+function resolveExcelRouting(deptRaw, position) {
+  const normDept = normalizeForMatch(deptRaw);
+  const normQc = normalizeForMatch("QC");
+  if (position === "Staff") return { kind: "staffCard" };
+  if (normDept === normQc && position === "Manager") return { kind: "middleCard" };
+  if (normDept.includes("unit")) return { kind: "team", teamTitle: "PQC UNIT" };
+  if (normDept.includes("assy")) return { kind: "team", teamTitle: "PQC ASSY" };
+  if (normDept === normQc) return { kind: "staffCard" };
+  const known = ["현지총괄관리자", "IQC", "OQC", "RMA"].find((d) => normalizeForMatch(d) === normDept);
+  if (known) return { kind: "team", teamTitle: known };
+  return { kind: "unrecognized" };
+}
+
+function ExcelUploadModal({ org, setOrg, onClose, onRegistered }) {
+  const { lang } = useLang();
+  const [fileName, setFileName] = useState("");
+  const [rows, setRows] = useState(null);
+  const [sheetIssues, setSheetIssues] = useState([]);
+  const [result, setResult] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const validRows = rows ? rows.filter((r) => r.valid) : [];
+  const invalidRows = rows ? rows.filter((r) => !r.valid) : [];
+
+  // 워크북 안의 모든 시트를 훑어 하나의 목록으로 합친다.
+  const handleFile = async (file) => {
+    if (!file) return;
+    setFileName(file.name);
+    setResult(null);
+    setRows(null);
+    setSheetIssues([]);
+
+    const colLabel = { empNo: t(lang, "fieldEmpNo"), name: t(lang, "fieldName"), dept: t(lang, "fieldDept"), position: t(lang, "fieldPosition") };
+
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+
+    // 기존 등록된 사번(부서장/팀원/단독카드/Staff카드 전원)을 모아 업로드
+    // 파일 내 행과 대조해 중복 등록을 막는다.
+    const existingEmpNos = new Set();
+    FACTORIES.forEach((f) => {
+      const d = org[f];
+      if (!d) return;
+      (d.heads || []).forEach((h) => {
+        if (h.empNo) existingEmpNos.add(String(h.empNo).trim().toUpperCase());
+      });
+      (d.teams || []).forEach((tm) =>
+        (tm.members || []).forEach((m) => {
+          if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+        })
+      );
+      (d.qcMembers || []).forEach((m) => {
+        if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+      });
+      if (d.middleCard) {
+        d.middleCard.members.forEach((m) => {
+          if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+        });
+      }
+    });
+    // 파일 안에서 이미 등장한 사번(여러 시트에 걸쳐서도)을 추적해 파일
+    // 내부 중복도 잡아낸다.
+    const seenInFile = new Set();
+
+    const allParsed = [];
+    const issues = [];
+
+    wb.SheetNames.forEach((sheetName) => {
+      const sheet = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      if (!raw.length) return;
+
+      const headerInfo = findHeaderRow(raw);
+      const required = ["empNo", "name", "dept", "position"];
+      const missing = required.filter((k) => !(k in headerInfo.map));
+      if (missing.length) {
+        issues.push({ sheetName, missing: missing.map((k) => colLabel[k]) });
+        return;
+      }
+
+      const colMap = headerInfo.map;
+
+      raw
+        .slice(headerInfo.idx + 1)
+        .filter((r) => r.some((cell) => String(cell ?? "").trim() !== ""))
+        .forEach((r, i) => {
+          const empNo = String(r[colMap.empNo] ?? "").trim();
+          const name = String(r[colMap.name] ?? "").trim();
+          const deptRaw = String(r[colMap.dept] ?? "").trim();
+          const posRaw = String(r[colMap.position] ?? "").trim();
+          const position = posRaw ? canonicalizePosition(posRaw) : "";
+          const routing = deptRaw && position ? resolveExcelRouting(deptRaw, position) : null;
+
+          const normEmpNo = empNo.toUpperCase();
+          let isDuplicate = false;
+          if (normEmpNo) {
+            if (existingEmpNos.has(normEmpNo) || seenInFile.has(normEmpNo)) {
+              isDuplicate = true;
+            } else {
+              seenInFile.add(normEmpNo);
+            }
+          }
+
+          const reasons = [];
+          if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
+          if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
+          if (!deptRaw) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldDept")));
+          if (!posRaw) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldPosition")));
+          if (deptRaw && posRaw && routing && routing.kind === "unrecognized") {
+            reasons.push(t(lang, "uploadReasonDept", deptRaw));
+          }
+          if (isDuplicate) reasons.push(t(lang, "uploadReasonDuplicate", empNo));
+
+          allParsed.push({
+            rowNum: headerInfo.idx + 2 + i,
+            sheetName,
+            empNo,
+            name,
+            deptRaw,
+            position,
+            routing,
+            valid: reasons.length === 0,
+            reasons,
+          });
+        });
+    });
+
+    setSheetIssues(issues);
+    setRows(allParsed);
+  };
+
+  const handleRegister = () => {
+    let okCount = 0;
+    setOrg((prev) => {
+      const factoryData = prev[1];
+      if (!factoryData) return prev;
+      let teams = factoryData.teams;
+      let qcMembers = factoryData.qcMembers || [];
+      let middleCard = factoryData.middleCard;
+
+      validRows.forEach((r) => {
+        const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "출근", factory: 1 };
+        if (r.routing.kind === "middleCard" && middleCard) {
+          middleCard = { ...middleCard, members: [...middleCard.members, newMember] };
+          okCount += 1;
+          return;
+        }
+        if (r.routing.kind === "staffCard") {
+          qcMembers = [...qcMembers, { ...newMember, dept: r.deptRaw }];
+          okCount += 1;
+          return;
+        }
+        if (r.routing.kind === "team") {
+          const teamIdx = teams.findIndex((tm) => tm.title === r.routing.teamTitle);
+          if (teamIdx === -1) return;
+          teams = teams.map((tm, i) => (i === teamIdx ? { ...tm, members: [...tm.members, newMember] } : tm));
+          okCount += 1;
+        }
+      });
+
+      return { ...prev, 1: { ...factoryData, teams, qcMembers, middleCard } };
+    });
+    setResult({ ok: okCount, fail: invalidRows.length + (validRows.length - okCount) });
+    if (okCount > 0) onRegistered?.(okCount);
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(28,31,27,0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          width: "100%",
+          maxWidth: 720,
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div style={{ padding: "16px 20px", borderBottom: `0.5px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: COLORS.textPrimary }}>{t(lang, "uploadModalTitle")}</div>
+          <button
+            onClick={onClose}
+            style={{ background: "transparent", border: "none", fontSize: 16, cursor: "pointer", color: COLORS.textSecondary }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "uploadHint")}</div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 6,
+                border: `0.5px solid ${COLORS.borderStrong}`,
+                background: COLORS.card,
+                color: COLORS.textPrimary,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              {t(lang, "uploadChooseFile")}
+            </button>
+            <span style={{ fontSize: 12, color: COLORS.textMuted }}>{fileName || t(lang, "uploadNoFile")}</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={(e) => handleFile(e.target.files?.[0])}
+              style={{ display: "none" }}
+            />
+          </div>
+
+          {sheetIssues.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {sheetIssues.map((issue) => (
+                <div key={issue.sheetName} style={{ fontSize: 13, fontWeight: 500, color: COLORS.danger }}>
+                  [{issue.sheetName}] {t(lang, "uploadColumnsNotFound", issue.missing.join(", "))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {rows && rows.length === 0 && (
+            <div style={{ fontSize: 13, color: COLORS.danger }}>{t(lang, "uploadEmptyFile")}</div>
+          )}
+
+          {rows && rows.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 10, fontSize: 12 }}>
+                <span style={{ fontWeight: 500 }}>{t(lang, "uploadPreview", rows.length)}</span>
+                <span style={{ color: COLORS.success }}>{t(lang, "uploadValidCount", validRows.length)}</span>
+                {invalidRows.length > 0 && (
+                  <span style={{ color: COLORS.danger, fontWeight: 600 }}>{t(lang, "uploadInvalidCount", invalidRows.length)}</span>
+                )}
+              </div>
+
+              <div style={{ border: `0.5px solid ${COLORS.border}`, borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "#F4F4F0", position: "sticky", top: 0 }}>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColRow")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colEmpNo")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldName")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldDept")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldPosition")}</th>
+                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColReason")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={`${r.sheetName}-${r.rowNum}`} style={{ background: r.valid ? "transparent" : COLORS.dangerBg }}>
+                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }}>{r.rowNum}</td>
+                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.empNo || "-"}</td>
+                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.name || "-"}</td>
+                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.deptRaw || "-"}</td>
+                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.position || "-"}</td>
+                          <td style={{ padding: "5px 8px", color: COLORS.danger, fontWeight: 500 }}>
+                            {r.reasons.join(" · ")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {result && (
+            <div style={{ fontSize: 13, fontWeight: 500, color: result.fail > 0 ? COLORS.warning : COLORS.success }}>
+              {t(lang, "uploadResultDone", result.ok, result.fail)}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: "14px 20px", borderTop: `0.5px solid ${COLORS.border}`, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button
+            onClick={onClose}
+            style={{ fontSize: 13, padding: "7px 16px", borderRadius: 6, border: `0.5px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer" }}
+          >
+            {t(lang, "uploadClose")}
+          </button>
+          {rows && validRows.length > 0 && (
+            <button
+              onClick={handleRegister}
+              style={{
+                fontSize: 13,
+                padding: "7px 16px",
+                borderRadius: 6,
+                border: "none",
+                background: COLORS.headDark,
+                color: "#fff",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              {t(lang, "uploadRegisterBtn", validRows.length)}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- 메인 앱 ----------
 export default function QualityPortal() {
   const [org, setOrg] = useState(loadInitialOrg);
@@ -1422,6 +1840,7 @@ export default function QualityPortal() {
   const [listOrder, setListOrder] = useState(loadInitialListOrder);
   const [dragRowId, setDragRowId] = useState(null);
   const [overRowId, setOverRowId] = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
   const importFileRef = useRef(null);
   // 서버로부터 받은 데이터를 반영하는 중인지 표시 (이 경우 다시 서버로
   // 되쏘지 않는다 - 안 그러면 pull과 push가 서로 계속 되풀이된다).
@@ -1590,7 +2009,10 @@ export default function QualityPortal() {
       d.teams.forEach((t) => {
         t.members.forEach((m) => list.push({ ...m, team: t.title, teamId: t.id }));
       });
-      (d.qcMembers || []).forEach((m) => list.push({ ...m, team: "QC", isQc: true }));
+      // qcMembers는 원래 QC 소속이거나, chức vụ가 Staff라 부서와 무관하게
+      // Staff 카드로 온 인원이다. 후자는 m.dept에 실제 부서명이 남아있어
+      // 명단 소속란에 QC 대신 그 값을 보여준다.
+      (d.qcMembers || []).forEach((m) => list.push({ ...m, team: m.dept || "QC", isQc: true }));
       if (d.middleCard) {
         d.middleCard.members.forEach((m) => list.push({ ...m, team: d.middleCard.title, isMiddleCard: true }));
       }
@@ -2137,6 +2559,24 @@ export default function QualityPortal() {
                     </button>
                   )}
                   <button
+                    onClick={() => setShowUpload(true)}
+                    title={t(lang, "uploadExcel")}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: `0.5px solid ${COLORS.teal}`,
+                      background: COLORS.tealBg,
+                      color: COLORS.teal,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ marginRight: 4 }} aria-hidden="true">⇪</span>
+                    {t(lang, "uploadExcel")}
+                  </button>
+                  <button
                     onClick={handleExportData}
                     title={t(lang, "exportData")}
                     style={{
@@ -2487,6 +2927,17 @@ export default function QualityPortal() {
           )}
         </div>
       </div>
+      {showUpload && (
+        <ExcelUploadModal
+          org={org}
+          setOrg={setOrg}
+          onClose={() => setShowUpload(false)}
+          onRegistered={() => {
+            setShowUpload(false);
+            setTab("org");
+          }}
+        />
+      )}
     </LangContext.Provider>
   );
 }
