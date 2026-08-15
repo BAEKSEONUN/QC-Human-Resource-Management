@@ -36179,7 +36179,13 @@
                         {
                           type: "date",
                           value: e.returnDate || "",
-                          onChange: (ev) => updateListEntry(e, { returnDate: ev.target.value }),
+                          min: "2000-01-01",
+                          max: "2099-12-31",
+                          onChange: (ev) => {
+                            const v = ev.target.value;
+                            if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+                            updateListEntry(e, { returnDate: v });
+                          },
                           style: {
                             fontSize: 12,
                             padding: "2px 4px",

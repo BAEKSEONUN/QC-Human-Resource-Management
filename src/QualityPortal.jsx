@@ -2403,7 +2403,15 @@ export default function QualityPortal() {
                           <input
                             type="date"
                             value={e.returnDate || ""}
-                            onChange={(ev) => updateListEntry(e, { returnDate: ev.target.value })}
+                            min="2000-01-01"
+                            max="2099-12-31"
+                            onChange={(ev) => {
+                              const v = ev.target.value;
+                              // 연도가 4자리가 아닌 값(입력창에 5~6자리 연도가 찍히는
+                              // 브라우저 버그성 동작)은 무시하고 반영하지 않는다.
+                              if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+                              updateListEntry(e, { returnDate: v });
+                            }}
                             style={{
                               fontSize: 12,
                               padding: "2px 4px",
