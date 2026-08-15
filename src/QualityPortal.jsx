@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
-import * as XLSX from "xlsx";
 
 // 이 앱이 관리하는 공장 번호 목록. 지금은 1공장만 운영한다(2공장은 제거됨).
 const FACTORIES = [1];
@@ -61,12 +60,15 @@ const DEPT_ORDER = ["부서장", ...DEPARTMENTS];
 // 최하위 직급은 검사 업무를 반영해 "Inspector"로 표기한다.
 const POSITIONS = ["Inspector", "Staff", "Supervisor 1", "Supervisor 2", "Manager", "Upper Manager"];
 
+// 전체 명단 요약에서 "관리자"로 묶어 세는 직급 (사용자가 지정한 3개 직급만).
+const MANAGER_POSITIONS = ["Supervisor 1", "Supervisor 2", "Manager"];
+
 const deptRank = (team) => {
   const idx = DEPT_ORDER.indexOf(team);
   return idx === -1 ? DEPT_ORDER.length : idx;
 };
 
-// 엑셀에서 검사 구역(IQC/PQC/OQC/RMA)을 직급으로 적어 올린 경우, 서열
+// 직급 값이 검사 구역(IQC/PQC/OQC/RMA)으로 적혀 있는 경우, 서열
 // 계산에서는 Inspector와 동일하게 취급한다.
 const POSITION_RANK_ALIASES = { IQC: "Inspector", PQC: "Inspector", OQC: "Inspector", RMA: "Inspector" };
 const positionRank = (position) => {
@@ -134,6 +136,8 @@ const DICT = {
   },
   dragTeamTitle: { ko: "드래그하여 팀 순서 변경", vi: "Kéo để đổi thứ tự nhóm" },
   dragMemberTitle: { ko: "드래그하여 다른 팀으로 이동", vi: "Kéo để chuyển sang nhóm khác" },
+  dragListRowTitle: { ko: "드래그하여 순서 변경", vi: "Kéo để đổi thứ tự" },
+  uploadPhotoTitle: { ko: "사진 등록/변경", vi: "Đăng ký/đổi ảnh" },
   editTeamNameTitle: { ko: "팀 이름 수정", vi: "Sửa tên nhóm" },
   deleteTeamTitle: { ko: "팀 삭제", vi: "Xóa nhóm" },
   addMember: { ko: "팀원 추가", vi: "Thêm thành viên" },
@@ -150,6 +154,8 @@ const DICT = {
   save: { ko: "저장", vi: "Lưu" },
   searchPlaceholder: { ko: "이름 또는 사번 검색", vi: "Tìm theo tên hoặc mã NV" },
   totalCount: { ko: (n) => `총 ${n}명`, vi: (n) => `Tổng ${n} người` },
+  managerLabel: { ko: "관리자", vi: "Quản lý" },
+  colPhoto: { ko: "사진", vi: "Ảnh" },
   colEmpNo: { ko: "사번", vi: "Mã NV" },
   colNameTeam: { ko: "성명 / 소속", vi: "Họ tên / Bộ phận" },
   colPosition: { ko: "직급", vi: "Chức vụ" },
@@ -158,47 +164,6 @@ const DICT = {
   colStatus: { ko: "오늘 상태", vi: "Trạng thái hôm nay" },
   headTeamLabel: { ko: "부서장", vi: "Trưởng phòng" },
   teamOverall: { ko: "현지총괄관리자", vi: "Tổng quản lý tại chỗ" },
-  uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
-  uploadModalTitle: { ko: "엑셀로 명단 업로드", vi: "Tải danh sách từ Excel" },
-  uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
-  uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
-  uploadHint: {
-    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 전체 명단에 소속 QC로 등록되고, 조직도에는 맨 끝의 고정 Staff 카드에 등록됩니다. 시트가 여러 개면 모두 함께 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ hiển thị với bộ phận QC trong danh sách đầy đủ, và xuất hiện trong thẻ Staff cố định ở cuối sơ đồ tổ chức. Nếu có nhiều sheet, tất cả sẽ được đăng ký cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
-  },
-  uploadColumnsNotFound: {
-    ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
-    vi: (cols) => `Không tìm thấy các cột: ${cols}`,
-  },
-  uploadEmptyFile: { ko: "파일에서 데이터를 찾을 수 없습니다.", vi: "Không tìm thấy dữ liệu trong tệp." },
-  uploadPreview: { ko: (n) => `미리보기 (${n}건)`, vi: (n) => `Xem trước (${n} dòng)` },
-  uploadValidCount: { ko: (n) => `등록 가능 ${n}건`, vi: (n) => `Có thể đăng ký: ${n}` },
-  uploadInvalidCount: { ko: (n) => `식별 실패 ${n}건`, vi: (n) => `Không xác định: ${n}` },
-  uploadColRow: { ko: "행", vi: "Dòng" },
-  uploadColReason: { ko: "사유", vi: "Lý do" },
-  uploadRegisterBtn: { ko: (n) => `등록 (${n}건)`, vi: (n) => `Đăng ký (${n})` },
-  uploadClose: { ko: "닫기", vi: "Đóng" },
-  uploadResultDone: {
-    ko: (ok, fail) => (fail > 0 ? `${ok}건 등록 완료, ${fail}건 식별 실패로 제외됨` : `${ok}건 등록 완료`),
-    vi: (ok, fail) => (fail > 0 ? `Đã đăng ký ${ok} dòng, ${fail} dòng bị loại do không xác định` : `Đã đăng ký ${ok} dòng`),
-  },
-  uploadReasonMissing: { ko: (field) => `${field} 값이 비어 있음`, vi: (field) => `Thiếu giá trị ${field}` },
-  uploadReasonDept: {
-    ko: (v) => `부서를 확인할 수 없음: "${v}"`,
-    vi: (v) => `Không xác định được bộ phận: "${v}"`,
-  },
-  uploadReasonPosition: {
-    ko: (v) => `직급을 확인할 수 없음: "${v}"`,
-    vi: (v) => `Không xác định được chức vụ: "${v}"`,
-  },
-  uploadReasonDuplicate: {
-    ko: (v) => `이미 등록된 사번(중복): "${v}"`,
-    vi: (v) => `Mã NV đã tồn tại (trùng lặp): "${v}"`,
-  },
-  uploadTeamNotFound: {
-    ko: (dept) => `해당 공장에 "${dept}" 팀이 없음`,
-    vi: (dept) => `Nhà máy này không có nhóm "${dept}"`,
-  },
 };
 
 const LangContext = createContext({ lang: "ko", t: (key) => key });
@@ -409,6 +374,45 @@ function loadInitialLang() {
   }
 }
 
+// 전체 명단에서 수정 모드 중 드래그로 정한 순서(사번/id 목록). 비어 있으면
+// 기본 정렬(sortByDeptAndPosition)을 그대로 쓴다.
+const LIST_ORDER_KEY = "qualityPortal.listOrder.v1";
+function loadInitialListOrder() {
+  try {
+    const raw = localStorage.getItem(LIST_ORDER_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// 사진 파일을 정사각형으로 가운데를 잘라 작게 리사이즈한 base64 데이터
+// URL로 변환한다 (localStorage 용량을 아끼기 위해 96px, JPEG로 압축).
+function readImageAsDataUrl(file, size = 96) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("이미지를 불러올 수 없습니다."));
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ---------- 공용 UI 조각 ----------
 function Badge({ status }) {
   const { lang } = useLang();
@@ -587,7 +591,7 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
 
 // 직급을 Manager / Supervisor / Staff / Inspector 4단계로 묶어서 보여준다.
 // (Manager: Manager·Upper Manager, Supervisor: Supervisor 1·2, Staff는 별도
-// 그룹, Inspector: Inspector 및 엑셀에서 검사 구역으로 표기된 IQC/PQC/OQC/RMA)
+// 그룹, Inspector: Inspector 및 검사 구역으로 표기된 IQC/PQC/OQC/RMA)
 const POSITION_TIER = {
   Inspector: "Inspector",
   IQC: "Inspector",
@@ -768,7 +772,6 @@ function TeamCard({
             padding: "8px 10px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             gap: 6,
             cursor: draggable ? "grab" : "default",
           }}
@@ -816,7 +819,7 @@ function TeamCard({
             </span>
           )}
           {isEditing && (
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+            <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: "auto" }}>
               {titleEditable && (
                 <button
                   onClick={() => setEditingTitle(true)}
@@ -1384,389 +1387,6 @@ function FactoryOrgPanel({ factory, data, setOrg }) {
   );
 }
 
-// ---------- 엑셀 업로드 ----------
-// 헤더 셀 문자열을 비교하기 쉽게 정규화한다 (대소문자/공백/구분자 무시).
-function normalizeHeaderCell(s) {
-  return String(s ?? "").trim().toLowerCase().replace(/[\s_\-./]/g, "");
-}
-
-// 열 인식은 한국어/베트남어 표기 각 하나씩만 정확히 인식한다.
-// MSNV=사번, Họ tên=성명, bộ phận=부서, chức vụ=직급.
-const COLUMN_ALIASES = {
-  empNo: ["사번", "MSNV"],
-  name: ["성명", "Họ tên"],
-  dept: ["부서", "bộ phận"],
-  position: ["직급", "chức vụ"],
-  factory: ["공장", "Xưởng", "nhà máy"],
-};
-
-function detectColumns(headerRow) {
-  const map = {};
-  headerRow.forEach((cell, idx) => {
-    const norm = normalizeHeaderCell(cell);
-    if (!norm) return;
-    Object.entries(COLUMN_ALIASES).forEach(([key, aliases]) => {
-      if (!(key in map) && aliases.some((a) => normalizeHeaderCell(a) === norm)) {
-        map[key] = idx;
-      }
-    });
-  });
-  return map;
-}
-
-// 부서(bộ phận) 값은 조직도 팀 이름과 정확히 일치해야 인식된다(QC 등은
-// 더 이상 다른 팀으로 자동 매핑하지 않는다 — 일치하는 팀이 없으면
-// 식별 실패로 표시된다).
-function normalizeDeptValue(raw) {
-  const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
-  if (!norm) return null;
-  const match = DEPARTMENTS.find((dept) => dept.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
-  return match || null;
-}
-
-// 직급(chức vụ) 값으로 인식하는 것은 이 8가지뿐이다. IQC/PQC/OQC/RMA는
-// 검사 구역을 뜻하는 직급으로, 값 자체는 그대로 저장해 전체 명단에는
-// IQC/PQC/OQC/RMA로 보이지만 조직도에서는 Inspector로 표시된다
-// (orgPositionLabel 참고).
-const EXCEL_POSITIONS = ["Manager", "Supervisor 1", "Supervisor 2", "Staff", "IQC", "PQC", "OQC", "RMA"];
-function normalizePositionValue(raw) {
-  const norm = String(raw ?? "").trim().toUpperCase().replace(/[\s_\-()]/g, "");
-  if (!norm) return null;
-  const match = EXCEL_POSITIONS.find((p) => p.toUpperCase().replace(/[\s_\-()]/g, "") === norm);
-  return match || null;
-}
-
-// PQC 직급의 부서 값(UNIT/ASSY 구분)을 비교하기 쉽게 정규화한다.
-function normalizeForMatch(s) {
-  return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
-}
-
-// 시트 맨 위가 아니라 몇 줄 아래에 실제 열 헤더가 있을 수 있어, 처음 몇 줄 중
-// 필수 열을 가장 많이 인식하는 행을 헤더로 채택한다.
-function findHeaderRow(rows, maxScan = 5) {
-  let best = { idx: 0, map: {}, count: -1 };
-  for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
-    const map = detectColumns(rows[i]);
-    const count = Object.keys(map).length;
-    if (count > best.count) best = { idx: i, map, count };
-  }
-  return best;
-}
-
-function ExcelUploadModal({ org, setOrg, onClose, onRegistered }) {
-  const { lang } = useLang();
-  const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState(null);
-  const [sheetIssues, setSheetIssues] = useState([]);
-  const [result, setResult] = useState(null);
-  const fileInputRef = useRef(null);
-
-  const validRows = rows ? rows.filter((r) => r.valid) : [];
-  const invalidRows = rows ? rows.filter((r) => !r.valid) : [];
-
-  // 워크북 안의 모든 시트를 훑어 하나의 목록으로 합친다 (시트가 여러 개여도
-  // 전부 1공장으로 등록된다).
-  const handleFile = async (file) => {
-    if (!file) return;
-    setFileName(file.name);
-    setResult(null);
-    setRows(null);
-    setSheetIssues([]);
-
-    const colLabel = { empNo: t(lang, "fieldEmpNo"), name: t(lang, "fieldName"), dept: t(lang, "fieldDept"), position: t(lang, "fieldPosition") };
-
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-
-    // 기존 등록된 사번(부서장/팀원/QC 소속 전원)을 모아
-    // 업로드 파일 내 행과 대조해 중복 등록을 막는다.
-    const existingEmpNos = new Set();
-    FACTORIES.forEach((f) => {
-      const d = org[f];
-      if (!d) return;
-      (d.heads || []).forEach((h) => {
-        if (h.empNo) existingEmpNos.add(String(h.empNo).trim().toUpperCase());
-      });
-      (d.teams || []).forEach((tm) =>
-        (tm.members || []).forEach((m) => {
-          if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
-        })
-      );
-      (d.qcMembers || []).forEach((m) => {
-        if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
-      });
-    });
-    // 파일 안에서 이미 등장한 사번(여러 시트에 걸쳐서도)을 추적해 파일
-    // 내부 중복도 잡아낸다.
-    const seenInFile = new Set();
-
-    const allParsed = [];
-    const issues = [];
-
-    wb.SheetNames.forEach((sheetName) => {
-      const sheet = wb.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-      if (!raw.length) return;
-
-      const headerInfo = findHeaderRow(raw);
-      const required = ["empNo", "name", "dept", "position"];
-      const missing = required.filter((k) => !(k in headerInfo.map));
-      if (missing.length) {
-        issues.push({ sheetName, missing: missing.map((k) => colLabel[k]) });
-        return;
-      }
-
-      const colMap = headerInfo.map;
-
-      raw
-        .slice(headerInfo.idx + 1)
-        .filter((r) => r.some((cell) => String(cell ?? "").trim() !== ""))
-        .forEach((r, i) => {
-          const empNo = String(r[colMap.empNo] ?? "").trim();
-          const name = String(r[colMap.name] ?? "").trim();
-          const deptRaw = String(r[colMap.dept] ?? "").trim();
-          const posRaw = String(r[colMap.position] ?? "").trim();
-          const position = normalizePositionValue(posRaw);
-          let dept = normalizeDeptValue(deptRaw);
-          // 직급이 "PQC"면 부서 열은 UNIT/ASSY 구분 표기로 취급해 어느
-          // PQC 팀인지 결정한다 (일반 부서명 매칭 결과를 덮어쓴다).
-          if (position === "PQC") {
-            const normDeptRaw = normalizeForMatch(deptRaw);
-            if (normDeptRaw.includes("unit")) dept = "PQC UNIT";
-            else if (normDeptRaw.includes("assy")) dept = "PQC ASSY";
-          }
-          const normEmpNo = empNo.toUpperCase();
-          let isDuplicate = false;
-          if (normEmpNo) {
-            if (existingEmpNos.has(normEmpNo) || seenInFile.has(normEmpNo)) {
-              isDuplicate = true;
-            } else {
-              seenInFile.add(normEmpNo);
-            }
-          }
-
-          const reasons = [];
-          if (!empNo) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldEmpNo")));
-          if (!name) reasons.push(t(lang, "uploadReasonMissing", t(lang, "fieldName")));
-          if (!dept) reasons.push(t(lang, "uploadReasonDept", deptRaw));
-          if (!position) reasons.push(t(lang, "uploadReasonPosition", posRaw));
-          if (isDuplicate) reasons.push(t(lang, "uploadReasonDuplicate", empNo));
-
-          allParsed.push({
-            rowNum: headerInfo.idx + 2 + i,
-            sheetName,
-            empNo,
-            name,
-            deptRaw,
-            dept,
-            posRaw,
-            position,
-            valid: reasons.length === 0,
-            reasons,
-          });
-        });
-    });
-
-    setSheetIssues(issues);
-    setRows(allParsed);
-  };
-
-  const handleRegister = () => {
-    let okCount = 0;
-    let notFoundCount = 0;
-    setOrg((prev) => {
-      let next = prev;
-      validRows.forEach((r) => {
-        const f = 1;
-        const factoryData = next[f];
-        if (!factoryData) return;
-        const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "출근", factory: f };
-        // bộ phận이 "QC"로만 적힌 인원은 특정 팀 카드에 넣지 않고 전체
-        // 명단 전용 qcMembers 목록에 등록한다 (조직도에는 표시되지 않음).
-        if (r.dept === "QC") {
-          next = { ...next, [f]: { ...factoryData, qcMembers: [...(factoryData.qcMembers || []), newMember] } };
-          okCount += 1;
-          return;
-        }
-        const teamIdx = factoryData.teams.findIndex(
-          (tm) => tm.title.trim().toUpperCase() === r.dept.toUpperCase() || tm.title === r.dept
-        );
-        if (teamIdx === -1) {
-          notFoundCount += 1;
-          return;
-        }
-        const updatedTeams = factoryData.teams.map((tm, i) =>
-          i === teamIdx ? { ...tm, members: [...tm.members, newMember] } : tm
-        );
-        next = { ...next, [f]: { ...factoryData, teams: updatedTeams } };
-        okCount += 1;
-      });
-      return next;
-    });
-    setResult({ ok: okCount, fail: invalidRows.length + notFoundCount });
-    if (okCount > 0) onRegistered?.(okCount);
-  };
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(28,31,27,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        padding: 20,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: COLORS.card,
-          borderRadius: 14,
-          width: "100%",
-          maxWidth: 720,
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
-        }}
-      >
-        <div style={{ padding: "16px 20px", borderBottom: `0.5px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 16, fontWeight: 500, color: COLORS.textPrimary }}>{t(lang, "uploadModalTitle")}</div>
-          <button
-            onClick={onClose}
-            style={{ background: "transparent", border: "none", fontSize: 16, cursor: "pointer", color: COLORS.textSecondary }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "uploadHint")}</div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 6,
-                border: `0.5px solid ${COLORS.borderStrong}`,
-                background: COLORS.card,
-                color: COLORS.textPrimary,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
-              {t(lang, "uploadChooseFile")}
-            </button>
-            <span style={{ fontSize: 12, color: COLORS.textMuted }}>{fileName || t(lang, "uploadNoFile")}</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-              style={{ display: "none" }}
-            />
-          </div>
-
-          {sheetIssues.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {sheetIssues.map((issue) => (
-                <div key={issue.sheetName} style={{ fontSize: 13, fontWeight: 500, color: COLORS.danger }}>
-                  [{issue.sheetName}] {t(lang, "uploadColumnsNotFound", issue.missing.join(", "))}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {rows && rows.length === 0 && (
-            <div style={{ fontSize: 13, color: COLORS.danger }}>{t(lang, "uploadEmptyFile")}</div>
-          )}
-
-          {rows && rows.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", gap: 10, fontSize: 12 }}>
-                <span style={{ fontWeight: 500 }}>{t(lang, "uploadPreview", rows.length)}</span>
-                <span style={{ color: COLORS.success }}>{t(lang, "uploadValidCount", validRows.length)}</span>
-                {invalidRows.length > 0 && (
-                  <span style={{ color: COLORS.danger, fontWeight: 600 }}>{t(lang, "uploadInvalidCount", invalidRows.length)}</span>
-                )}
-              </div>
-
-              <div style={{ border: `0.5px solid ${COLORS.border}`, borderRadius: 8, overflow: "hidden" }}>
-                <div style={{ maxHeight: 260, overflowY: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead>
-                      <tr style={{ background: "#F4F4F0", position: "sticky", top: 0 }}>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColRow")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colEmpNo")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldName")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldDept")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldPosition")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColReason")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr key={`${r.sheetName}-${r.rowNum}`} style={{ background: r.valid ? "transparent" : COLORS.dangerBg }}>
-                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }}>{r.rowNum}</td>
-                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.empNo || "-"}</td>
-                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.name || "-"}</td>
-                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.dept || r.deptRaw || "-"}</td>
-                          <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.position || r.posRaw || "-"}</td>
-                          <td style={{ padding: "5px 8px", color: COLORS.danger, fontWeight: 500 }}>
-                            {r.reasons.join(" · ")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {result && (
-            <div style={{ fontSize: 13, fontWeight: 500, color: result.fail > 0 ? COLORS.warning : COLORS.success }}>
-              {t(lang, "uploadResultDone", result.ok, result.fail)}
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: "14px 20px", borderTop: `0.5px solid ${COLORS.border}`, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button
-            onClick={onClose}
-            style={{ fontSize: 13, padding: "7px 16px", borderRadius: 6, border: `0.5px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer" }}
-          >
-            {t(lang, "uploadClose")}
-          </button>
-          {rows && validRows.length > 0 && (
-            <button
-              onClick={handleRegister}
-              style={{
-                fontSize: 13,
-                padding: "7px 16px",
-                borderRadius: 6,
-                border: "none",
-                background: COLORS.headDark,
-                color: "#fff",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              {t(lang, "uploadRegisterBtn", validRows.length)}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------- 메인 앱 ----------
 export default function QualityPortal() {
   const [org, setOrg] = useState(loadInitialOrg);
@@ -1775,10 +1395,12 @@ export default function QualityPortal() {
   const [factory, setFactory] = useState("all");
   const [statusFilter, setStatusFilter] = useState("전체");
   const [search, setSearch] = useState("");
-  const [showUpload, setShowUpload] = useState(false);
   const [listEditing, setListEditing] = useState(false);
   const [editingListId, setEditingListId] = useState(null);
   const [selectedListIds, setSelectedListIds] = useState(() => new Set());
+  const [listOrder, setListOrder] = useState(loadInitialListOrder);
+  const [dragRowId, setDragRowId] = useState(null);
+  const [overRowId, setOverRowId] = useState(null);
 
   // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
   useEffect(() => {
@@ -1796,6 +1418,15 @@ export default function QualityPortal() {
       // 무시
     }
   }, [lang]);
+
+  // 명단 수정 모드에서 드래그로 정한 순서를 저장해, 다음 수정 전까지 고정되게 한다.
+  useEffect(() => {
+    try {
+      localStorage.setItem(LIST_ORDER_KEY, JSON.stringify(listOrder));
+    } catch {
+      // 무시
+    }
+  }, [listOrder]);
 
   // 날짜가 바뀌면(자정이 지나면) "오늘 상태"를 출근으로 초기화한다. 앱을
   // 새로 열었을 때 날짜가 이미 바뀌어 있으면 즉시 한 번 처리하고, 앱을 켜둔
@@ -1864,11 +1495,43 @@ export default function QualityPortal() {
     [allEmployees, factory]
   );
 
+  // 수정 모드에서 드래그로 정한 순서(listOrder)가 있으면 그 순서를 그대로
+  // 쓰고, 아직 순서를 정한 적 없는 인원은 기본 정렬로 뒤에 붙인다. listOrder가
+  // 비어 있으면(한 번도 순서를 바꾼 적 없으면) 기존처럼 기본 정렬만 쓴다.
+  const orderedScoped = useMemo(() => {
+    const arr = scoped.slice();
+    if (listOrder.length === 0) return arr.sort(sortByDeptAndPosition);
+    const orderIndex = new Map(listOrder.map((id, i) => [id, i]));
+    return arr.sort((a, b) => {
+      const ia = orderIndex.has(a.id) ? orderIndex.get(a.id) : Infinity;
+      const ib = orderIndex.has(b.id) ? orderIndex.get(b.id) : Infinity;
+      if (ia !== ib) return ia - ib;
+      return sortByDeptAndPosition(a, b);
+    });
+  }, [scoped, listOrder]);
+
+  // 드래그로 한 행을 다른 행 위치로 옮긴다. 필터/검색으로 일부만 보이는
+  // 중이어도 전체 순서(orderedScoped) 기준으로 이동시켜 나머지 순서는
+  // 그대로 유지된다.
+  const moveListRow = (draggedId, targetId) => {
+    if (!draggedId || draggedId === targetId) return;
+    const baseIds = orderedScoped.map((e) => e.id);
+    const next = baseIds.filter((id) => id !== draggedId);
+    const targetIdx = next.indexOf(targetId);
+    if (targetIdx === -1) return;
+    next.splice(targetIdx, 0, draggedId);
+    setListOrder(next);
+  };
+
+  // 대시보드 집계에는 품질부서장을 포함하지 않는다 (항상 출근으로 고정된
+  // 인원이라 실질적인 근태 집계에서 의미가 없다).
   const counts = useMemo(() => {
     const c = { 출근: 0, 연차: 0, 병가: 0, 무단결근: 0, 출산휴가: 0 };
-    scoped.forEach((e) => {
-      c[e.status] = (c[e.status] || 0) + 1;
-    });
+    scoped
+      .filter((e) => !e.isHead)
+      .forEach((e) => {
+        c[e.status] = (c[e.status] || 0) + 1;
+      });
     return c;
   }, [scoped]);
 
@@ -1880,17 +1543,48 @@ export default function QualityPortal() {
       .sort((a, b) => ABSENCE_ORDER.indexOf(a.status) - ABSENCE_ORDER.indexOf(b.status));
   }, [scoped]);
 
-  // 같은 부서(IQC/PQC/OQC/RMA)끼리 묶고 그 안에서 직급 높은 순으로 정렬
+  // orderedScoped(수정 모드에서 드래그로 정한 순서, 없으면 기본 정렬)를
+  // 상태/검색 조건으로 걸러낸다. 순서는 이미 orderedScoped에서 정해졌으므로
+  // 여기서는 다시 정렬하지 않는다.
   const filteredList = useMemo(() => {
-    return scoped
+    return orderedScoped
       .filter((e) => statusFilter === "전체" || e.status === statusFilter)
       .filter((e) => {
         const q = search.trim().toLowerCase();
         return !q || e.name.toLowerCase().includes(q) || e.empNo.toLowerCase().includes(q);
+      });
+  }, [orderedScoped, statusFilter, search]);
+
+  // "총 N명" 옆에 보여줄 요약: 부서장은 제외하고, 관리자(Supervisor 1/2,
+  // Manager)와 Staff 직급은 소속과 무관하게 하나로 묶고, 나머지는 소속
+  // (부서/카드)별로 묶어서 센다.
+  const listSummary = useMemo(() => {
+    const nonHead = filteredList.filter((e) => !e.isHead);
+    let managerCount = 0;
+    const byGroup = new Map();
+    nonHead.forEach((e) => {
+      if (MANAGER_POSITIONS.includes(e.position)) {
+        managerCount += 1;
+      } else if (e.position === "Staff") {
+        byGroup.set("Staff", (byGroup.get("Staff") || 0) + 1);
+      } else {
+        byGroup.set(e.team, (byGroup.get(e.team) || 0) + 1);
+      }
+    });
+    const groupOrder = ["Staff", ...DEPARTMENTS];
+    const parts = [];
+    if (managerCount > 0) parts.push({ label: t(lang, "managerLabel"), count: managerCount });
+    [...byGroup.entries()]
+      .sort((a, b) => {
+        const ia = groupOrder.indexOf(a[0]);
+        const ib = groupOrder.indexOf(b[0]);
+        return (ia === -1 ? groupOrder.length : ia) - (ib === -1 ? groupOrder.length : ib);
       })
-      .slice()
-      .sort(sortByDeptAndPosition);
-  }, [scoped, statusFilter, search]);
+      .forEach(([team, count]) => {
+        if (count > 0) parts.push({ label: team === "Staff" ? "Staff" : trTeamTitle(team, lang), count });
+      });
+    return { total: nonHead.length, parts };
+  }, [filteredList, lang]);
 
   // 전체 명단에서 부서장/팀원 항목을 수정·삭제한다. isHead 여부로 heads
   // 배열을 고칠지, teamId로 찾은 팀의 members 배열을 고칠지 분기한다.
@@ -2071,10 +1765,11 @@ export default function QualityPortal() {
 
   // 전체 명단 표의 컬럼 폭. 직급 라벨이 "Upper Manager" 등 영문으로 길어져
   // 기존 100px로는 잘려 보였으므로 넉넉하게 넓혔다 (헤더/데이터 행 동일하게 유지).
-  // 수정 모드일 때는 앞에 선택 체크박스, 끝에 수정/삭제 아이콘 칸을 추가한다.
+  // 사진 칸은 항상 표시하고, 수정 모드일 때는 맨 앞에 드래그 핸들·선택
+  // 체크박스, 끝에 수정/삭제 아이콘 칸을 추가한다.
   const LIST_GRID_COLUMNS = listEditing
-    ? "24px 90px 1fr 130px 70px 1.2fr 110px 70px"
-    : "90px 1fr 130px 70px 1.2fr 110px";
+    ? "18px 24px 36px 90px 1fr 130px 70px 1.2fr 110px 70px"
+    : "36px 90px 1fr 130px 70px 1.2fr 110px";
 
   const listLocked = listEditing && editingListId !== null;
 
@@ -2289,22 +1984,6 @@ export default function QualityPortal() {
                       {t(lang, "deleteAll")}
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowUpload(true)}
-                    style={{
-                      height: 30,
-                      padding: "0 12px",
-                      borderRadius: 6,
-                      border: `0.5px solid ${COLORS.borderStrong}`,
-                      background: COLORS.card,
-                      color: COLORS.textPrimary,
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ marginRight: 4 }} aria-hidden="true">⇧</span>
-                    {t(lang, "uploadExcel")}
-                  </button>
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -2314,7 +1993,14 @@ export default function QualityPortal() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>{t(lang, "totalCount", filteredList.length)}</div>
+              <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8, display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 6 }}>
+                <span>{t(lang, "totalCount", listSummary.total)}</span>
+                {listSummary.parts.length > 0 && (
+                  <span style={{ color: COLORS.textMuted }}>
+                    {listSummary.parts.map((p) => `${p.label} ${p.count}${t(lang, "personSuffix")}`).join(" / ")}
+                  </span>
+                )}
+              </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div
@@ -2327,6 +2013,7 @@ export default function QualityPortal() {
                     padding: "0 10px 4px",
                   }}
                 >
+                  {listEditing && <span />}
                   {listEditing && (
                     <input
                       type="checkbox"
@@ -2336,6 +2023,7 @@ export default function QualityPortal() {
                       title={t(lang, "deleteSelected", selectedListIds.size)}
                     />
                   )}
+                  <span style={{ textAlign: "center" }}>{t(lang, "colPhoto")}</span>
                   <span>{t(lang, "colEmpNo")}</span>
                   <span>{t(lang, "colNameTeam")}</span>
                   <span>{t(lang, "colPosition")}</span>
@@ -2364,12 +2052,32 @@ export default function QualityPortal() {
 
                   const meta = STATUS_META[e.status];
                   let note = "-";
-                  if (e.status !== "출근" && e.status !== "출산휴가" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
+                  if (e.status === "출산휴가" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
+                  else if (e.status !== "출근" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
                   const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
                   const canDelete = !e.isHead || e.headCountInFactory > 1;
                   return (
                     <div
                       key={e.id}
+                      draggable={listEditing}
+                      onDragStart={() => setDragRowId(e.id)}
+                      onDragOver={(ev) => {
+                        if (!listEditing) return;
+                        ev.preventDefault();
+                        if (overRowId !== e.id) setOverRowId(e.id);
+                      }}
+                      onDragLeave={() => setOverRowId((cur) => (cur === e.id ? null : cur))}
+                      onDrop={(ev) => {
+                        if (!listEditing) return;
+                        ev.preventDefault();
+                        moveListRow(dragRowId, e.id);
+                        setDragRowId(null);
+                        setOverRowId(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragRowId(null);
+                        setOverRowId(null);
+                      }}
                       style={{
                         display: "grid",
                         gridTemplateColumns: LIST_GRID_COLUMNS,
@@ -2378,9 +2086,19 @@ export default function QualityPortal() {
                         padding: "9px 10px",
                         borderRadius: 8,
                         background: e.status === "출근" ? "#FAFAF8" : meta.bg,
-                        borderLeft: `3px solid ${meta.color}`,
+                        borderLeft: `3px solid ${overRowId === e.id && dragRowId !== e.id ? COLORS.teal : meta.color}`,
+                        opacity: dragRowId === e.id ? 0.5 : 1,
                       }}
                     >
+                      {listEditing && (
+                        <span
+                          aria-hidden="true"
+                          title={t(lang, "dragListRowTitle")}
+                          style={{ cursor: "grab", color: COLORS.textMuted, fontSize: 12, textAlign: "center" }}
+                        >
+                          ⠿
+                        </span>
+                      )}
                       {listEditing && (
                         <input
                           type="checkbox"
@@ -2390,6 +2108,60 @@ export default function QualityPortal() {
                           style={{ margin: 0 }}
                         />
                       )}
+                      <div style={{ display: "flex", justifyContent: "center" }}>
+                        {listEditing ? (
+                          <label style={{ cursor: "pointer", display: "block" }} title={t(lang, "uploadPhotoTitle")}>
+                            {e.photo ? (
+                              <img
+                                src={e.photo}
+                                alt=""
+                                style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: "50%",
+                                  background: COLORS.page,
+                                  border: `0.5px dashed ${COLORS.borderStrong}`,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 14,
+                                  color: COLORS.textMuted,
+                                }}
+                              >
+                                +
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={async (ev) => {
+                                const file = ev.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  const dataUrl = await readImageAsDataUrl(file);
+                                  updateListEntry(e, { photo: dataUrl });
+                                } catch {
+                                  // 이미지를 읽지 못하면 조용히 무시
+                                }
+                                ev.target.value = "";
+                              }}
+                            />
+                          </label>
+                        ) : e.photo ? (
+                          <img
+                            src={e.photo}
+                            alt=""
+                            style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                          />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: COLORS.page }} />
+                        )}
+                      </div>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.empNo}</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{e.name}</div>
@@ -2397,7 +2169,7 @@ export default function QualityPortal() {
                       </div>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.position}</span>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "factoryLabel", e.factory)}</span>
-                      {e.status === "출산휴가" ? (
+                      {listEditing && e.status === "출산휴가" ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
                           <span style={{ fontSize: 11, color: COLORS.textSecondary, whiteSpace: "nowrap" }}>{t(lang, "returnDatePrefix")}</span>
                           <input
@@ -2423,6 +2195,24 @@ export default function QualityPortal() {
                             }}
                           />
                         </div>
+                      ) : listEditing && e.status !== "출근" ? (
+                        <input
+                          type="text"
+                          value={e.note || ""}
+                          placeholder={t(lang, "reasonPrefix")}
+                          onChange={(ev) => updateListEntry(e, { note: ev.target.value })}
+                          style={{
+                            fontSize: 12,
+                            padding: "3px 6px",
+                            borderRadius: 4,
+                            border: `0.5px solid ${COLORS.border}`,
+                            color: COLORS.textPrimary,
+                            background: COLORS.card,
+                            width: "100%",
+                            boxSizing: "border-box",
+                            minWidth: 0,
+                          }}
+                        />
                       ) : (
                         <span style={{ fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</span>
                       )}
@@ -2475,19 +2265,6 @@ export default function QualityPortal() {
             </div>
           )}
         </div>
-
-        {showUpload && (
-          <ExcelUploadModal
-            org={org}
-            setOrg={setOrg}
-            onClose={() => setShowUpload(false)}
-            onRegistered={() => {
-              // 등록된 인원을 바로 확인할 수 있도록 조직도 탭으로 자동 전환한다.
-              setShowUpload(false);
-              setTab("org");
-            }}
-          />
-        )}
       </div>
     </LangContext.Provider>
   );
