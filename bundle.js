@@ -7382,6 +7382,14 @@
       ko: "\uC804\uCCB4 \uBA85\uB2E8(\uBD80\uC11C\uC7A5\uACFC \uBAA8\uB4E0 \uD300\uC6D0)\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uC774 \uC791\uC5C5\uC740 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       vi: "X\xF3a to\xE0n b\u1ED9 danh s\xE1ch (tr\u01B0\u1EDFng ph\xF2ng v\xE0 t\u1EA5t c\u1EA3 th\xE0nh vi\xEAn)? H\xE0nh \u0111\u1ED9ng n\xE0y kh\xF4ng th\u1EC3 ho\xE0n t\xE1c."
     },
+    exportData: { ko: "\uB0B4\uBCF4\uB0B4\uAE30", vi: "Xu\u1EA5t d\u1EEF li\u1EC7u" },
+    importData: { ko: "\uBD88\uB7EC\uC624\uAE30", vi: "Nh\u1EADp d\u1EEF li\u1EC7u" },
+    confirmImportData: {
+      ko: "\uD30C\uC77C\uC744 \uBD88\uB7EC\uC624\uBA74 \uD604\uC7AC \uC774 \uCEF4\uD4E8\uD130\uC5D0 \uC800\uC7A5\uB41C \uBAA8\uB4E0 \uB370\uC774\uD130\uAC00 \uD30C\uC77C \uB0B4\uC6A9\uC73C\uB85C \uBC14\uB01D\uB2C8\uB2E4. \uACC4\uC18D\uD560\uAE4C\uC694?",
+      vi: "Nh\u1EADp t\u1EC7p s\u1EBD thay th\u1EBF to\xE0n b\u1ED9 d\u1EEF li\u1EC7u hi\u1EC7n \u0111ang l\u01B0u tr\xEAn m\xE1y n\xE0y. Ti\u1EBFp t\u1EE5c?"
+    },
+    importInvalidFile: { ko: "\uC62C\uBC14\uB978 \uB370\uC774\uD130 \uD30C\uC77C\uC774 \uC544\uB2D9\uB2C8\uB2E4.", vi: "T\u1EC7p d\u1EEF li\u1EC7u kh\xF4ng h\u1EE3p l\u1EC7." },
+    importSuccess: { ko: "\uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.", vi: "\u0110\xE3 nh\u1EADp d\u1EEF li\u1EC7u th\xE0nh c\xF4ng." },
     deleteSelected: { ko: (n) => `\uC120\uD0DD \uC0AD\uC81C (${n})`, vi: (n) => `X\xF3a m\u1EE5c \u0111\xE3 ch\u1ECDn (${n})` },
     confirmDeleteSelected: {
       ko: (n) => `\uC120\uD0DD\uD55C ${n}\uBA85\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`,
@@ -7565,14 +7573,17 @@
     });
     return changed ? next : org;
   }
+  function normalizeLoadedOrg(parsed) {
+    if (!parsed || !parsed[1]) return null;
+    idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
+    return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+  }
   function loadInitialOrg() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return initialOrg;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !parsed[1]) return initialOrg;
-      idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-      return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+      const normalized = normalizeLoadedOrg(JSON.parse(raw));
+      return normalized || initialOrg;
     } catch {
       return initialOrg;
     }
@@ -8513,6 +8524,7 @@
     const [listOrder, setListOrder] = (0, import_react.useState)(loadInitialListOrder);
     const [dragRowId, setDragRowId] = (0, import_react.useState)(null);
     const [overRowId, setOverRowId] = (0, import_react.useState)(null);
+    const importFileRef = (0, import_react.useRef)(null);
     (0, import_react.useEffect)(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
@@ -8847,6 +8859,39 @@
     const handleDeleteAll = () => {
       if (confirm(t(lang, "confirmDeleteAll"))) clearAllEmployees();
     };
+    const handleExportData = () => {
+      const blob = new Blob([JSON.stringify(org)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quality-portal-data-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+    const handleImportFile = (file) => {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        let normalized = null;
+        try {
+          normalized = normalizeLoadedOrg(JSON.parse(String(reader.result)));
+        } catch {
+          normalized = null;
+        }
+        if (!normalized) {
+          alert(t(lang, "importInvalidFile"));
+          return;
+        }
+        if (!confirm(t(lang, "confirmImportData"))) return;
+        setOrg(normalized);
+        setSelectedListIds(/* @__PURE__ */ new Set());
+        setEditingListId(null);
+        alert(t(lang, "importSuccess"));
+      };
+      reader.readAsText(file);
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LangContext.Provider, { value: langCtx, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { maxWidth: 1400, margin: "0 auto", padding: "20px 20px 40px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
@@ -8996,6 +9041,61 @@
                   cursor: "pointer"
                 },
                 children: t(lang, "deleteAll")
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                onClick: handleExportData,
+                title: t(lang, "exportData"),
+                style: {
+                  height: 30,
+                  padding: "0 12px",
+                  borderRadius: 6,
+                  border: `0.5px solid ${COLORS.borderStrong}`,
+                  background: COLORS.card,
+                  color: COLORS.textPrimary,
+                  fontSize: 12,
+                  cursor: "pointer"
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "\u21E9" }),
+                  t(lang, "exportData")
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                onClick: () => importFileRef.current?.click(),
+                title: t(lang, "importData"),
+                style: {
+                  height: 30,
+                  padding: "0 12px",
+                  borderRadius: 6,
+                  border: `0.5px solid ${COLORS.borderStrong}`,
+                  background: COLORS.card,
+                  color: COLORS.textPrimary,
+                  fontSize: 12,
+                  cursor: "pointer"
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "\u21E7" }),
+                  t(lang, "importData")
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
+              {
+                ref: importFileRef,
+                type: "file",
+                accept: "application/json,.json",
+                style: { display: "none" },
+                onChange: (e) => {
+                  handleImportFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(

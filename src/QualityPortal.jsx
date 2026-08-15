@@ -129,6 +129,14 @@ const DICT = {
     ko: "전체 명단(부서장과 모든 팀원)을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
     vi: "Xóa toàn bộ danh sách (trưởng phòng và tất cả thành viên)? Hành động này không thể hoàn tác.",
   },
+  exportData: { ko: "내보내기", vi: "Xuất dữ liệu" },
+  importData: { ko: "불러오기", vi: "Nhập dữ liệu" },
+  confirmImportData: {
+    ko: "파일을 불러오면 현재 이 컴퓨터에 저장된 모든 데이터가 파일 내용으로 바뀝니다. 계속할까요?",
+    vi: "Nhập tệp sẽ thay thế toàn bộ dữ liệu hiện đang lưu trên máy này. Tiếp tục?",
+  },
+  importInvalidFile: { ko: "올바른 데이터 파일이 아닙니다.", vi: "Tệp dữ liệu không hợp lệ." },
+  importSuccess: { ko: "데이터를 불러왔습니다.", vi: "Đã nhập dữ liệu thành công." },
   deleteSelected: { ko: (n) => `선택 삭제 (${n})`, vi: (n) => `Xóa mục đã chọn (${n})` },
   confirmDeleteSelected: {
     ko: (n) => `선택한 ${n}명을 삭제할까요?`,
@@ -350,16 +358,22 @@ function ensureMiddleCard(org) {
   return changed ? next : org;
 }
 
+// localStorage에서 읽었든, 내보내기/불러오기 파일에서 읽었든 동일한 절차로
+// 검증·마이그레이션한다. 유효하지 않으면 null을 반환한다.
+function normalizeLoadedOrg(parsed) {
+  if (!parsed || !parsed[1]) return null;
+  // 2공장은 앱에서 완전히 제거되었으므로, 예전에 저장된 데이터에 남아 있어도
+  // 더 이상 읽어오지 않는다 (id 충돌 방지를 위한 idSeq 계산에는 포함시킨다).
+  idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
+  return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+}
+
 function loadInitialOrg() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialOrg;
-    const parsed = JSON.parse(raw);
-    if (!parsed || !parsed[1]) return initialOrg;
-    // 2공장은 앱에서 완전히 제거되었으므로, 예전에 저장된 데이터에 남아 있어도
-    // 더 이상 읽어오지 않는다 (id 충돌 방지를 위한 idSeq 계산에는 포함시킨다).
-    idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-    return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+    const normalized = normalizeLoadedOrg(JSON.parse(raw));
+    return normalized || initialOrg;
   } catch {
     return initialOrg;
   }
@@ -1401,6 +1415,7 @@ export default function QualityPortal() {
   const [listOrder, setListOrder] = useState(loadInitialListOrder);
   const [dragRowId, setDragRowId] = useState(null);
   const [overRowId, setOverRowId] = useState(null);
+  const importFileRef = useRef(null);
 
   // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
   useEffect(() => {
@@ -1811,6 +1826,44 @@ export default function QualityPortal() {
     if (confirm(t(lang, "confirmDeleteAll"))) clearAllEmployees();
   };
 
+  // 서버 없이도 다른 컴퓨터와 데이터를 주고받을 수 있도록, 전체 데이터를
+  // JSON 파일로 내려받거나(내보내기) 그 파일을 다시 읽어들인다(불러오기).
+  // 공유 폴더에 파일을 두고 서로 내보내기→불러오기 하는 식으로 사용한다.
+  const handleExportData = () => {
+    const blob = new Blob([JSON.stringify(org)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quality-portal-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let normalized = null;
+      try {
+        normalized = normalizeLoadedOrg(JSON.parse(String(reader.result)));
+      } catch {
+        normalized = null;
+      }
+      if (!normalized) {
+        alert(t(lang, "importInvalidFile"));
+        return;
+      }
+      if (!confirm(t(lang, "confirmImportData"))) return;
+      setOrg(normalized);
+      setSelectedListIds(new Set());
+      setEditingListId(null);
+      alert(t(lang, "importSuccess"));
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <LangContext.Provider value={langCtx}>
       <div style={{ background: COLORS.page, minHeight: "100%", fontFamily: "var(--font-sans, sans-serif)" }}>
@@ -1990,6 +2043,50 @@ export default function QualityPortal() {
                       {t(lang, "deleteAll")}
                     </button>
                   )}
+                  <button
+                    onClick={handleExportData}
+                    title={t(lang, "exportData")}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: `0.5px solid ${COLORS.borderStrong}`,
+                      background: COLORS.card,
+                      color: COLORS.textPrimary,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ marginRight: 4 }} aria-hidden="true">⇩</span>
+                    {t(lang, "exportData")}
+                  </button>
+                  <button
+                    onClick={() => importFileRef.current?.click()}
+                    title={t(lang, "importData")}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: `0.5px solid ${COLORS.borderStrong}`,
+                      background: COLORS.card,
+                      color: COLORS.textPrimary,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ marginRight: 4 }} aria-hidden="true">⇧</span>
+                    {t(lang, "importData")}
+                  </button>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept="application/json,.json"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      handleImportFile(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
