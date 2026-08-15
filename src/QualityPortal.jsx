@@ -268,6 +268,13 @@ const STORAGE_KEY = "qualityPortal.org.v1";
 const LANG_STORAGE_KEY = "qualityPortal.lang.v1";
 const RESET_DATE_KEY = "qualityPortal.lastResetDate.v1";
 
+// server.js를 통해 http(s)로 접속했을 때만 /api/data로 자동 동기화한다.
+// index.html을 file://로 직접 열었을 때는 서버가 없으므로 이 요청 자체를
+// 시도하지 않고 예전처럼 이 브라우저의 localStorage만 사용한다.
+const SYNC_ENABLED = typeof window !== "undefined" && window.location.protocol !== "file:";
+const SYNC_POLL_MS = 5000;
+const SYNC_PUSH_DEBOUNCE_MS = 500;
+
 // 로컬 날짜를 "YYYY-MM-DD"로 반환한다 (returnDate 저장 형식과 동일해 문자열
 // 비교로 날짜 선후를 판단할 수 있다).
 function todayISODate() {
@@ -1416,6 +1423,12 @@ export default function QualityPortal() {
   const [dragRowId, setDragRowId] = useState(null);
   const [overRowId, setOverRowId] = useState(null);
   const importFileRef = useRef(null);
+  // 서버로부터 받은 데이터를 반영하는 중인지 표시 (이 경우 다시 서버로
+  // 되쏘지 않는다 - 안 그러면 pull과 push가 서로 계속 되풀이된다).
+  const isRemoteApplyRef = useRef(false);
+  // 이 브라우저가 마지막으로 "알고 있는" 데이터의 수정 시각. push할 때
+  // 갱신하고, pull한 데이터가 이보다 최신일 때만 반영한다.
+  const orgUpdatedAtRef = useRef(0);
 
   // 조직도가 바뀔 때마다 이 브라우저의 localStorage에 저장해 새로고침해도 유지되게 한다.
   useEffect(() => {
@@ -1424,7 +1437,87 @@ export default function QualityPortal() {
     } catch {
       // 저장소를 쓸 수 없는 환경(프라이빗 모드 등)이면 조용히 무시하고 메모리상 상태만 유지
     }
+
+    if (!SYNC_ENABLED) return;
+    if (isRemoteApplyRef.current) {
+      // 방금 서버에서 받아온 변경이라 되쏘지 않는다.
+      isRemoteApplyRef.current = false;
+      return;
+    }
+    // 사용자가 직접 바꾼 변경이므로 시각을 갱신하고, 서버로 올린다(연속
+    // 입력 중 매번 보내지 않도록 살짝 지연시킨다).
+    const updatedAt = Date.now();
+    orgUpdatedAtRef.current = updatedAt;
+    const timer = setTimeout(() => {
+      fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ org, updatedAt }),
+      }).catch(() => {
+        // 서버가 꺼져 있거나 네트워크 문제면 조용히 무시 (다음 변경 때 다시 시도됨)
+      });
+    }, SYNC_PUSH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [org]);
+
+  // 서버 동기화: 접속 직후 한 번 최신 데이터를 받아오고, 이후 5초마다
+  // 서버 데이터가 더 최신이면 반영한다. file://로 열었을 때는(SYNC_ENABLED가
+  // false) 아무것도 하지 않는다.
+  useEffect(() => {
+    if (!SYNC_ENABLED) return;
+    let cancelled = false;
+
+    const applyRemote = (remoteOrg, remoteUpdatedAt) => {
+      isRemoteApplyRef.current = true;
+      orgUpdatedAtRef.current = remoteUpdatedAt;
+      setOrg(remoteOrg);
+    };
+
+    const pullOnce = async () => {
+      try {
+        const res = await fetch("/api/data", { cache: "no-store" });
+        if (res.status === 404) return { found: false };
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.org) return null;
+        return { found: true, org: data.org, updatedAt: data.updatedAt || 0 };
+      } catch {
+        return null;
+      }
+    };
+
+    (async () => {
+      const remote = await pullOnce();
+      if (cancelled || !remote) return;
+      if (remote.found) {
+        applyRemote(remote.org, remote.updatedAt);
+      } else {
+        // 서버에 아직 데이터가 없으면(맨 처음 켠 경우) 이 브라우저가 갖고
+        // 있던 데이터로 서버를 초기화한다.
+        const updatedAt = Date.now();
+        orgUpdatedAtRef.current = updatedAt;
+        fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ org, updatedAt }),
+        }).catch(() => {});
+      }
+    })();
+
+    const interval = setInterval(async () => {
+      const remote = await pullOnce();
+      if (cancelled || !remote || !remote.found) return;
+      if (remote.updatedAt > orgUpdatedAtRef.current) {
+        applyRemote(remote.org, remote.updatedAt);
+      }
+    }, SYNC_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try {

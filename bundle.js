@@ -7498,6 +7498,9 @@
   var STORAGE_KEY = "qualityPortal.org.v1";
   var LANG_STORAGE_KEY = "qualityPortal.lang.v1";
   var RESET_DATE_KEY = "qualityPortal.lastResetDate.v1";
+  var SYNC_ENABLED = typeof window !== "undefined" && window.location.protocol !== "file:";
+  var SYNC_POLL_MS = 5e3;
+  var SYNC_PUSH_DEBOUNCE_MS = 500;
   function todayISODate() {
     const d = /* @__PURE__ */ new Date();
     const y = d.getFullYear();
@@ -8525,12 +8528,78 @@
     const [dragRowId, setDragRowId] = (0, import_react.useState)(null);
     const [overRowId, setOverRowId] = (0, import_react.useState)(null);
     const importFileRef = (0, import_react.useRef)(null);
+    const isRemoteApplyRef = (0, import_react.useRef)(false);
+    const orgUpdatedAtRef = (0, import_react.useRef)(0);
     (0, import_react.useEffect)(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
       } catch {
       }
+      if (!SYNC_ENABLED) return;
+      if (isRemoteApplyRef.current) {
+        isRemoteApplyRef.current = false;
+        return;
+      }
+      const updatedAt = Date.now();
+      orgUpdatedAtRef.current = updatedAt;
+      const timer = setTimeout(() => {
+        fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ org, updatedAt })
+        }).catch(() => {
+        });
+      }, SYNC_PUSH_DEBOUNCE_MS);
+      return () => clearTimeout(timer);
     }, [org]);
+    (0, import_react.useEffect)(() => {
+      if (!SYNC_ENABLED) return;
+      let cancelled = false;
+      const applyRemote = (remoteOrg, remoteUpdatedAt) => {
+        isRemoteApplyRef.current = true;
+        orgUpdatedAtRef.current = remoteUpdatedAt;
+        setOrg(remoteOrg);
+      };
+      const pullOnce = async () => {
+        try {
+          const res = await fetch("/api/data", { cache: "no-store" });
+          if (res.status === 404) return { found: false };
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (!data || !data.org) return null;
+          return { found: true, org: data.org, updatedAt: data.updatedAt || 0 };
+        } catch {
+          return null;
+        }
+      };
+      (async () => {
+        const remote = await pullOnce();
+        if (cancelled || !remote) return;
+        if (remote.found) {
+          applyRemote(remote.org, remote.updatedAt);
+        } else {
+          const updatedAt = Date.now();
+          orgUpdatedAtRef.current = updatedAt;
+          fetch("/api/data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ org, updatedAt })
+          }).catch(() => {
+          });
+        }
+      })();
+      const interval = setInterval(async () => {
+        const remote = await pullOnce();
+        if (cancelled || !remote || !remote.found) return;
+        if (remote.updatedAt > orgUpdatedAtRef.current) {
+          applyRemote(remote.org, remote.updatedAt);
+        }
+      }, SYNC_POLL_MS);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }, []);
     (0, import_react.useEffect)(() => {
       try {
         localStorage.setItem(LANG_STORAGE_KEY, lang);
