@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
+import * as XLSX from "xlsx";
 
 // 이 앱이 관리하는 공장 번호 목록. 지금은 1공장만 운영한다(2공장은 제거됨).
 const FACTORIES = [1];
@@ -126,14 +127,7 @@ const DICT = {
     ko: "전체 명단(부서장과 모든 팀원)을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
     vi: "Xóa toàn bộ danh sách (trưởng phòng và tất cả thành viên)? Hành động này không thể hoàn tác.",
   },
-  exportData: { ko: "내보내기", vi: "Xuất dữ liệu" },
-  importData: { ko: "불러오기", vi: "Nhập dữ liệu" },
-  confirmImportData: {
-    ko: "파일을 불러오면 현재 이 컴퓨터에 저장된 모든 데이터가 파일 내용으로 바뀝니다. 계속할까요?",
-    vi: "Nhập tệp sẽ thay thế toàn bộ dữ liệu hiện đang lưu trên máy này. Tiếp tục?",
-  },
-  importInvalidFile: { ko: "올바른 데이터 파일이 아닙니다.", vi: "Tệp dữ liệu không hợp lệ." },
-  importSuccess: { ko: "데이터를 불러왔습니다.", vi: "Đã nhập dữ liệu thành công." },
+  downloadExcel: { ko: "엑셀 다운로드", vi: "Tải xuống Excel" },
   deleteSelected: { ko: (n) => `선택 삭제 (${n})`, vi: (n) => `Xóa mục đã chọn (${n})` },
   confirmDeleteSelected: {
     ko: (n) => `선택한 ${n}명을 삭제할까요?`,
@@ -1747,7 +1741,6 @@ export default function QualityPortal() {
   const [org, setOrg] = useState(loadInitialOrg);
   const [lang, setLang] = useState(loadInitialLang);
   const [tab, setTab] = useState("dashboard");
-  const [factory, setFactory] = useState("all");
   const [statusFilter, setStatusFilter] = useState("전체");
   const [search, setSearch] = useState("");
   const [listEditing, setListEditing] = useState(false);
@@ -1757,7 +1750,6 @@ export default function QualityPortal() {
   const [dragRowId, setDragRowId] = useState(null);
   const [overRowId, setOverRowId] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
-  const importFileRef = useRef(null);
   // 서버로부터 받은 데이터를 반영하는 중인지 표시 (이 경우 다시 서버로
   // 되쏘지 않는다 - 안 그러면 pull과 push가 서로 계속 되풀이된다).
   const isRemoteApplyRef = useRef(false);
@@ -1939,10 +1931,8 @@ export default function QualityPortal() {
     return list;
   }, [org]);
 
-  const scoped = useMemo(
-    () => (factory === "all" ? allEmployees : allEmployees.filter((e) => e.factory === factory)),
-    [allEmployees, factory]
-  );
+  // 공장이 하나뿐이므로 별도 필터 없이 전체 인원을 그대로 쓴다.
+  const scoped = allEmployees;
 
   // 수정 모드에서 드래그로 정한 순서(listOrder)가 있으면 그 순서를 그대로
   // 쓰고, 아직 순서를 정한 적 없는 인원은 기본 정렬로 뒤에 붙인다. listOrder가
@@ -2194,24 +2184,6 @@ export default function QualityPortal() {
     setShowRegister(false);
   };
 
-  const FactoryBtn = ({ value, label }) => (
-    <button
-      onClick={() => setFactory(value)}
-      style={{
-        padding: "6px 14px",
-        fontSize: 13,
-        borderRadius: 6,
-        border: `0.5px solid ${factory === value ? COLORS.headDark : COLORS.border}`,
-        background: factory === value ? COLORS.headDark : COLORS.card,
-        color: factory === value ? "#fff" : COLORS.textPrimary,
-        cursor: "pointer",
-        fontWeight: factory === value ? 500 : 400,
-      }}
-    >
-      {label}
-    </button>
-  );
-
   const LangBtn = ({ value, label }) => (
     <button
       onClick={() => setLang(value)}
@@ -2294,42 +2266,28 @@ export default function QualityPortal() {
     if (confirm(t(lang, "confirmDeleteAll"))) clearAllEmployees();
   };
 
-  // 서버 없이도 다른 컴퓨터와 데이터를 주고받을 수 있도록, 전체 데이터를
-  // JSON 파일로 내려받거나(내보내기) 그 파일을 다시 읽어들인다(불러오기).
-  // 공유 폴더에 파일을 두고 서로 내보내기→불러오기 하는 식으로 사용한다.
-  const handleExportData = () => {
-    const blob = new Blob([JSON.stringify(org)], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `quality-portal-data-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportFile = (file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      let normalized = null;
-      try {
-        normalized = normalizeLoadedOrg(JSON.parse(String(reader.result)));
-      } catch {
-        normalized = null;
-      }
-      if (!normalized) {
-        alert(t(lang, "importInvalidFile"));
-        return;
-      }
-      if (!confirm(t(lang, "confirmImportData"))) return;
-      setOrg(normalized);
-      setSelectedListIds(new Set());
-      setEditingListId(null);
-      alert(t(lang, "importSuccess"));
-    };
-    reader.readAsText(file);
+  // 현재 화면에 보이는(검색·상태 필터·정렬 반영된) 전체 명단을 실제 엑셀
+  // 파일(.xlsx)로 내려받는다.
+  const handleDownloadExcel = () => {
+    const rows = filteredList.map((e) => {
+      const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
+      let note = "";
+      if (e.status === "출산휴가" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
+      else if (e.status !== "출근" && e.note) note = e.note;
+      return {
+        [t(lang, "colEmpNo")]: e.empNo,
+        [t(lang, "fieldName")]: e.name,
+        [t(lang, "fieldDept")]: teamLabel,
+        [t(lang, "fieldPosition")]: e.position,
+        [t(lang, "colFactory")]: t(lang, "factoryLabel", e.factory),
+        [t(lang, "colStatus")]: trStatus(e.status, lang),
+        [t(lang, "colNote")]: note,
+      };
+    });
+    const sheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Sheet1");
+    XLSX.writeFile(workbook, `quality-portal-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -2343,10 +2301,6 @@ export default function QualityPortal() {
               <div style={{ fontSize: 13, color: COLORS.textSecondary, marginTop: 2 }}>{todayStr(lang)}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <FactoryBtn value="all" label={t(lang, "all")} />
-                <FactoryBtn value={1} label={t(lang, "factoryLabel", 1)} />
-              </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <LangBtn value="ko" label="한국어" />
                 <LangBtn value="vi" label="Tiếng Việt" />
@@ -2421,7 +2375,7 @@ export default function QualityPortal() {
           {/* 조직도 */}
           {tab === "org" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-              {(factory === "all" ? FACTORIES : [factory]).map((f) => (
+              {FACTORIES.map((f) => (
                 <FactoryOrgPanel key={f} factory={f} data={org[f]} setOrg={setOrg} />
               ))}
             </div>
@@ -2536,8 +2490,8 @@ export default function QualityPortal() {
                     </button>
                   )}
                   <button
-                    onClick={handleExportData}
-                    title={t(lang, "exportData")}
+                    onClick={handleDownloadExcel}
+                    title={t(lang, "downloadExcel")}
                     style={{
                       height: 30,
                       padding: "0 12px",
@@ -2550,35 +2504,8 @@ export default function QualityPortal() {
                     }}
                   >
                     <span style={{ marginRight: 4 }} aria-hidden="true">⇩</span>
-                    {t(lang, "exportData")}
+                    {t(lang, "downloadExcel")}
                   </button>
-                  <button
-                    onClick={() => importFileRef.current?.click()}
-                    title={t(lang, "importData")}
-                    style={{
-                      height: 30,
-                      padding: "0 12px",
-                      borderRadius: 6,
-                      border: `0.5px solid ${COLORS.borderStrong}`,
-                      background: COLORS.card,
-                      color: COLORS.textPrimary,
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ marginRight: 4 }} aria-hidden="true">⇧</span>
-                    {t(lang, "importData")}
-                  </button>
-                  <input
-                    ref={importFileRef}
-                    type="file"
-                    accept="application/json,.json"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      handleImportFile(e.target.files?.[0]);
-                      e.target.value = "";
-                    }}
-                  />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -2679,15 +2606,19 @@ export default function QualityPortal() {
                       draggable={listEditing}
                       onDragStart={() => setDragRowId(e.id)}
                       onDragOver={(ev) => {
-                        if (!listEditing) return;
+                        if (!listEditing || !dragRowId) return;
                         ev.preventDefault();
-                        if (overRowId !== e.id) setOverRowId(e.id);
+                        // 조직도 카드 드래그처럼, 드롭할 때 한 번에 재배열하는 게 아니라
+                        // 드래그하는 동안 지나가는 행마다 바로바로 순서를 옮겨 부드럽게
+                        // 흘러가듯 보이게 한다.
+                        if (overRowId !== e.id) {
+                          setOverRowId(e.id);
+                          if (dragRowId !== e.id) moveListRow(dragRowId, e.id);
+                        }
                       }}
-                      onDragLeave={() => setOverRowId((cur) => (cur === e.id ? null : cur))}
                       onDrop={(ev) => {
                         if (!listEditing) return;
                         ev.preventDefault();
-                        moveListRow(dragRowId, e.id);
                         setDragRowId(null);
                         setOverRowId(null);
                       }}
@@ -2703,8 +2634,9 @@ export default function QualityPortal() {
                         padding: "9px 10px",
                         borderRadius: 8,
                         background: e.status === "출근" ? "#FAFAF8" : meta.bg,
-                        borderLeft: `3px solid ${overRowId === e.id && dragRowId !== e.id ? COLORS.teal : meta.color}`,
+                        borderLeft: `3px solid ${meta.color}`,
                         opacity: dragRowId === e.id ? 0.5 : 1,
+                        transition: "opacity 150ms ease",
                       }}
                     >
                       {listEditing && (
