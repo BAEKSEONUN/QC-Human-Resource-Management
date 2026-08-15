@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "build": "esbuild src/main.jsx --bundle --outfile=bundle.js --loader:.jsx=jsx --jsx=automatic --define:process.env.NODE_ENV=\"'production'\"",
-    "watch": "esbuild src/main.jsx --bundle --outfile=bundle.js --loader:.jsx=jsx --jsx=automatic --define:process.env.NODE_ENV=\"'production'\" --watch"
+    "watch": "esbuild src/main.jsx --bundle --outfile=bundle.js --loader:.jsx=jsx --jsx=automatic --define:process.env.NODE_ENV=\"'production'\" --watch",
+    "serve": "node server.js"
   },
   "dependencies": {
     "react": "^18.3.1",
