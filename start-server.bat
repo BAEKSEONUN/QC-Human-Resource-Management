@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 (
-  echo Node.js가 설치되어 있지 않습니다. https://nodejs.org 에서 설치한 뒤 다시 실행해주세요.
+  echo Node.js is not installed. Please install it from https://nodejs.org and run this again.
   pause
   exit /b 1
 )
