@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
 import * as XLSX from "xlsx";
 
+// 이 앱이 관리하는 공장 번호 목록. 지금은 1공장만 운영한다(2공장은 제거됨).
+const FACTORIES = [1];
+
 // ---------- 색상 토큰 ----------
 const COLORS = {
   headDark: "#1F3D2E",
@@ -121,8 +124,8 @@ const DICT = {
   confirmDeleteMember: { ko: "이 팀원을 삭제할까요?", vi: "Xóa thành viên này?" },
   deleteAll: { ko: "전체 삭제", vi: "Xóa tất cả" },
   confirmDeleteAll: {
-    ko: "전체 명단(1공장·2공장의 부서장과 모든 팀원)을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
-    vi: "Xóa toàn bộ danh sách (trưởng phòng và tất cả thành viên ở Nhà máy 1 và 2)? Hành động này không thể hoàn tác.",
+    ko: "전체 명단(부서장과 모든 팀원)을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+    vi: "Xóa toàn bộ danh sách (trưởng phòng và tất cả thành viên)? Hành động này không thể hoàn tác.",
   },
   deleteSelected: { ko: (n) => `선택 삭제 (${n})`, vi: (n) => `Xóa mục đã chọn (${n})` },
   confirmDeleteSelected: {
@@ -157,15 +160,11 @@ const DICT = {
   teamOverall: { ko: "현지총괄관리자", vi: "Tổng quản lý tại chỗ" },
   uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
   uploadModalTitle: { ko: "엑셀로 명단 업로드", vi: "Tải danh sách từ Excel" },
-  uploadTargetFactory: {
-    ko: "기본 등록 공장 (시트명·공장 열로 구분되지 않을 때만 사용)",
-    vi: "Nhà máy mặc định (chỉ dùng khi không xác định được qua tên sheet hoặc cột nhà máy)",
-  },
   uploadChooseFile: { ko: "파일 선택", vi: "Chọn tệp" },
   uploadNoFile: { ko: "선택된 파일이 없습니다", vi: "Chưa chọn tệp nào" },
   uploadHint: {
-    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 전체 명단에 소속 QC로 등록되고, 조직도에는 맨 끝의 고정 Staff 카드에 등록됩니다. 시트가 여러 개면 시트 이름(예: Xưởng 1, Xưởng 2)으로 공장을 자동 인식해 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
-    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ hiển thị với bộ phận QC trong danh sách đầy đủ, và xuất hiện trong thẻ Staff cố định ở cuối sơ đồ tổ chức. Nếu có nhiều sheet, tên sheet (VD: Xưởng 1, Xưởng 2) sẽ tự nhận diện nhà máy và đăng ký tất cả cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
+    ko: "MSNV(사번), Họ tên(성명), bộ phận(부서: 현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ(직급: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) 열이 포함된 .xlsx, .xls, .csv 파일을 올려주세요. 직급이 IQC/PQC/OQC/RMA면 전체 명단에는 그 값 그대로, 조직도에는 Inspector로 등록됩니다. 직급이 PQC면 부서 값의 UNIT/ASSY 표기로 PQC UNIT/PQC ASSY를 구분합니다. bộ phận이 QC면 전체 명단에 소속 QC로 등록되고, 조직도에는 맨 끝의 고정 Staff 카드에 등록됩니다. 시트가 여러 개면 모두 함께 한 번에 등록합니다. 이미 등록된 사번이나 파일 내 중복 사번은 등록에서 제외됩니다.",
+    vi: "Tải lên tệp .xlsx, .xls, .csv có cột MSNV, Họ tên, bộ phận (현지총괄관리자/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), chức vụ (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Chức vụ là IQC/PQC/OQC/RMA sẽ giữ nguyên trong danh sách nhưng hiển thị là Inspector trong sơ đồ tổ chức. Nếu chức vụ là PQC, giá trị UNIT/ASSY trong bộ phận sẽ quyết định PQC UNIT hay PQC ASSY. Nếu bộ phận là QC, nhân viên sẽ hiển thị với bộ phận QC trong danh sách đầy đủ, và xuất hiện trong thẻ Staff cố định ở cuối sơ đồ tổ chức. Nếu có nhiều sheet, tất cả sẽ được đăng ký cùng lúc. Mã NV đã tồn tại hoặc trùng lặp trong tệp sẽ bị loại khỏi đăng ký.",
   },
   uploadColumnsNotFound: {
     ko: (cols) => `다음 열을 찾을 수 없습니다: ${cols}`,
@@ -286,42 +285,6 @@ const initialOrg = {
       },
     ]
   ),
-  2: seedFactory(
-    2,
-    [{ empNo: "Q2001", name: "윤태영", position: "품질부서장" }],
-    [
-      { title: "현지총괄관리자", members: [] },
-      {
-        title: "IQC",
-        members: [
-          { empNo: "Q2011", name: "배민재", position: "Upper Manager", status: "출근" },
-          { empNo: "Q2012", name: "송지호", position: "Inspector", status: "출근" },
-        ],
-      },
-      {
-        title: "PQC UNIT",
-        members: [{ empNo: "Q2021", name: "임하늘", position: "Manager", status: "병가", note: "병원 진료" }],
-      },
-      {
-        title: "PQC ASSY",
-        members: [{ empNo: "Q2022", name: "강서준", position: "Inspector", status: "출근" }],
-      },
-      {
-        title: "OQC",
-        members: [
-          { empNo: "Q2031", name: "노유빈", position: "Supervisor 2", status: "출근" },
-          { empNo: "Q2032", name: "권나라", position: "Inspector", status: "출산휴가", returnDate: "2026-09-20" },
-        ],
-      },
-      {
-        title: "RMA",
-        members: [
-          { empNo: "Q2041", name: "서지훈", position: "Manager", status: "출근" },
-          { empNo: "Q2042", name: "문가은", position: "Staff", status: "출근" },
-        ],
-      },
-    ]
-  ),
 };
 
 // ---------- 저장(로컬 저장소) ----------
@@ -393,9 +356,11 @@ function loadInitialOrg() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialOrg;
     const parsed = JSON.parse(raw);
-    if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
+    if (!parsed || !parsed[1]) return initialOrg;
+    // 2공장은 앱에서 완전히 제거되었으므로, 예전에 저장된 데이터에 남아 있어도
+    // 더 이상 읽어오지 않는다 (id 충돌 방지를 위한 idSeq 계산에는 포함시킨다).
     idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-    return ensureMiddleCard(migrateLegacyTeamNames(parsed));
+    return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
   } catch {
     return initialOrg;
   }
@@ -1437,50 +1402,13 @@ function normalizePositionValue(raw) {
   return match || null;
 }
 
-// 실제 업로드 파일은 시트 이름(또는 시트 안의 제목 셀)이 "Xưởng 1"/"Xưởng 2"
-// (베트남어로 "1공장"/"2공장")로 되어 있어, 이 표기로 어느 공장 시트인지
-// 인식한다. 정확히 일치하지 않아도 되도록 부분 포함으로 검사한다
-// (예: "Xưởng 1 - Danh sách" 도 인식됨).
+// PQC 직급의 부서 값(UNIT/ASSY 구분)을 비교하기 쉽게 정규화한다.
 function normalizeForMatch(s) {
   return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
 }
-const FACTORY_TEXT_PATTERNS = {
-  1: ["xưởng1", "xuong1", "1공장", "factory1", "nhàmáy1", "nhamay1", "plant1"],
-  2: ["xưởng2", "xuong2", "2공장", "factory2", "nhàmáy2", "nhamay2", "plant2"],
-};
-function detectFactoryFromText(text) {
-  const norm = normalizeForMatch(text);
-  if (!norm) return null;
-  for (const [f, patterns] of Object.entries(FACTORY_TEXT_PATTERNS)) {
-    if (patterns.some((p) => norm.includes(p))) return Number(f);
-  }
-  return null;
-}
 
-function normalizeFactoryValue(raw) {
-  const fromText = detectFactoryFromText(raw);
-  if (fromText) return fromText;
-  const digits = String(raw ?? "").replace(/\D/g, "");
-  if (digits === "1") return 1;
-  if (digits === "2") return 2;
-  return null;
-}
-
-// 시트 이름으로 먼저 공장을 판단하고, 못 찾으면 시트 상단 몇 줄(제목 행 등)의
-// 텍스트에서 "Xưởng 1"/"Xưởng 2" 표기를 찾아본다.
-function detectSheetFactory(sheetName, rows) {
-  const fromName = detectFactoryFromText(sheetName);
-  if (fromName) return fromName;
-  for (let i = 0; i < Math.min(3, rows.length); i++) {
-    const found = detectFactoryFromText(rows[i].join(" "));
-    if (found) return found;
-  }
-  return null;
-}
-
-// 시트 맨 위가 아니라 몇 줄 아래에 실제 열 헤더가 있을 수 있어(예: 위에
-// "Xưởng 1" 제목 행이 있는 경우), 처음 몇 줄 중 필수 열을 가장 많이
-// 인식하는 행을 헤더로 채택한다.
+// 시트 맨 위가 아니라 몇 줄 아래에 실제 열 헤더가 있을 수 있어, 처음 몇 줄 중
+// 필수 열을 가장 많이 인식하는 행을 헤더로 채택한다.
 function findHeaderRow(rows, maxScan = 5) {
   let best = { idx: 0, map: {}, count: -1 };
   for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
@@ -1491,25 +1419,19 @@ function findHeaderRow(rows, maxScan = 5) {
   return best;
 }
 
-// 엑셀 업로드 창 안에서는 앱 언어 설정과 무관하게 원본 파일과 동일하게
-// 항상 "Xưởng 1"/"Xưởng 2"로 표기해, 파일 속 시트 이름과 바로 대조할 수 있게 한다.
-const xuongLabel = (n) => `Xưởng ${n}`;
-
-function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }) {
+function ExcelUploadModal({ org, setOrg, onClose, onRegistered }) {
   const { lang } = useLang();
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
   const [sheetIssues, setSheetIssues] = useState([]);
-  const [targetFactory, setTargetFactory] = useState(defaultFactory === 1 || defaultFactory === 2 ? defaultFactory : 1);
   const [result, setResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const validRows = rows ? rows.filter((r) => r.valid) : [];
   const invalidRows = rows ? rows.filter((r) => !r.valid) : [];
 
-  // 워크북 안의 모든 시트를 훑는다. 실제 파일은 첫 번째 시트가 Xưởng 1
-  // (1공장), 두 번째 시트가 Xưởng 2(2공장)인 구조라, 시트마다 소속 공장을
-  // 인식해 전체를 한 번에 등록할 수 있는 하나의 목록으로 합친다.
+  // 워크북 안의 모든 시트를 훑어 하나의 목록으로 합친다 (시트가 여러 개여도
+  // 전부 1공장으로 등록된다).
   const handleFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
@@ -1522,10 +1444,10 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
 
-    // 기존 등록된 사번(부서장/팀원/QC 소속 전원, 두 공장 모두)을 모아
+    // 기존 등록된 사번(부서장/팀원/QC 소속 전원)을 모아
     // 업로드 파일 내 행과 대조해 중복 등록을 막는다.
     const existingEmpNos = new Set();
-    [1, 2].forEach((f) => {
+    FACTORIES.forEach((f) => {
       const d = org[f];
       if (!d) return;
       (d.heads || []).forEach((h) => {
@@ -1561,7 +1483,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
       }
 
       const colMap = headerInfo.map;
-      const sheetFactory = detectSheetFactory(sheetName, raw);
 
       raw
         .slice(headerInfo.idx + 1)
@@ -1580,8 +1501,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
             if (normDeptRaw.includes("unit")) dept = "PQC UNIT";
             else if (normDeptRaw.includes("assy")) dept = "PQC ASSY";
           }
-          const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
-
           const normEmpNo = empNo.toUpperCase();
           let isDuplicate = false;
           if (normEmpNo) {
@@ -1608,7 +1527,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
             dept,
             posRaw,
             position,
-            factory: rowFactory || sheetFactory,
             valid: reasons.length === 0,
             reasons,
           });
@@ -1625,7 +1543,7 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
     setOrg((prev) => {
       let next = prev;
       validRows.forEach((r) => {
-        const f = r.factory || targetFactory;
+        const f = 1;
         const factoryData = next[f];
         if (!factoryData) return;
         const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "출근", factory: f };
@@ -1696,27 +1614,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
         <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "uploadHint")}</div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
-            {t(lang, "uploadTargetFactory")}
-            <select
-              value={targetFactory}
-              onChange={(e) => setTargetFactory(Number(e.target.value))}
-              style={{
-                width: 200,
-                height: 32,
-                padding: "0 8px",
-                borderRadius: 6,
-                border: `0.5px solid ${COLORS.border}`,
-                fontSize: 13,
-                color: COLORS.textPrimary,
-                background: COLORS.card,
-              }}
-            >
-              <option value={1}>{xuongLabel(1)}</option>
-              <option value={2}>{xuongLabel(2)}</option>
-            </select>
-          </label>
-
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -1772,7 +1669,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
                     <thead>
                       <tr style={{ background: "#F4F4F0", position: "sticky", top: 0 }}>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "uploadColRow")}</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colFactory")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "colEmpNo")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldName")}</th>
                         <th style={{ textAlign: "left", padding: "6px 8px" }}>{t(lang, "fieldDept")}</th>
@@ -1784,9 +1680,6 @@ function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }
                       {rows.map((r) => (
                         <tr key={`${r.sheetName}-${r.rowNum}`} style={{ background: r.valid ? "transparent" : COLORS.dangerBg }}>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }}>{r.rowNum}</td>
-                          <td style={{ padding: "5px 8px", color: r.factory ? (r.valid ? COLORS.textPrimary : COLORS.danger) : COLORS.danger }}>
-                            {r.factory ? xuongLabel(r.factory) : `${xuongLabel(targetFactory)} *`}
-                          </td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.empNo || "-"}</td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.name || "-"}</td>
                           <td style={{ padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }}>{r.dept || r.deptRaw || "-"}</td>
@@ -1874,7 +1767,7 @@ export default function QualityPortal() {
 
   const allEmployees = useMemo(() => {
     const list = [];
-    [1, 2].forEach((f) => {
+    FACTORIES.forEach((f) => {
       const d = org[f];
       d.heads.forEach((h) =>
         list.push({ ...h, team: "부서장", isHead: true, status: "출근", headCountInFactory: d.heads.length })
@@ -2006,7 +1899,7 @@ export default function QualityPortal() {
     const idSet = new Set(entries.map((e) => e.id));
     setOrg((prev) => {
       const next = { ...prev };
-      [1, 2].forEach((f) => {
+      FACTORIES.forEach((f) => {
         const factoryData = next[f];
         next[f] = {
           ...factoryData,
@@ -2022,12 +1915,12 @@ export default function QualityPortal() {
     });
   };
 
-  // 필터와 무관하게 1공장·2공장의 부서장과 모든 팀원을 통째로 비운다
+  // 필터와 무관하게 부서장과 모든 팀원을 통째로 비운다
   // (팀/부서 카드 구조 자체는 남겨둔다). 되돌릴 수 없는 작업이다.
   const clearAllEmployees = () => {
     setOrg((prev) => {
       const next = {};
-      [1, 2].forEach((f) => {
+      FACTORIES.forEach((f) => {
         next[f] = {
           ...prev[f],
           heads: [],
@@ -2155,7 +2048,6 @@ export default function QualityPortal() {
               <div style={{ display: "flex", gap: 6 }}>
                 <FactoryBtn value="all" label={t(lang, "all")} />
                 <FactoryBtn value={1} label={t(lang, "factoryLabel", 1)} />
-                <FactoryBtn value={2} label={t(lang, "factoryLabel", 2)} />
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <LangBtn value="ko" label="한국어" />
@@ -2231,7 +2123,7 @@ export default function QualityPortal() {
           {/* 조직도 */}
           {tab === "org" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-              {(factory === "all" ? [1, 2] : [factory]).map((f) => (
+              {(factory === "all" ? FACTORIES : [factory]).map((f) => (
                 <FactoryOrgPanel key={f} factory={f} data={org[f]} setOrg={setOrg} />
               ))}
             </div>
@@ -2485,7 +2377,6 @@ export default function QualityPortal() {
           <ExcelUploadModal
             org={org}
             setOrg={setOrg}
-            defaultFactory={factory}
             onClose={() => setShowUpload(false)}
             onRegistered={() => {
               // 등록된 인원을 바로 확인할 수 있도록 조직도 탭으로 자동 전환한다.

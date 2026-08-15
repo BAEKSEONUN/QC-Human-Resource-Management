@@ -34084,6 +34084,7 @@
 
   // src/QualityPortal.jsx
   var import_jsx_runtime = __toESM(require_jsx_runtime());
+  var FACTORIES = [1];
   var COLORS = {
     headDark: "#1F3D2E",
     headMid: "#2C5443",
@@ -34176,8 +34177,8 @@
     confirmDeleteMember: { ko: "\uC774 \uD300\uC6D0\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?", vi: "X\xF3a th\xE0nh vi\xEAn n\xE0y?" },
     deleteAll: { ko: "\uC804\uCCB4 \uC0AD\uC81C", vi: "X\xF3a t\u1EA5t c\u1EA3" },
     confirmDeleteAll: {
-      ko: "\uC804\uCCB4 \uBA85\uB2E8(1\uACF5\uC7A5\xB72\uACF5\uC7A5\uC758 \uBD80\uC11C\uC7A5\uACFC \uBAA8\uB4E0 \uD300\uC6D0)\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uC774 \uC791\uC5C5\uC740 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
-      vi: "X\xF3a to\xE0n b\u1ED9 danh s\xE1ch (tr\u01B0\u1EDFng ph\xF2ng v\xE0 t\u1EA5t c\u1EA3 th\xE0nh vi\xEAn \u1EDF Nh\xE0 m\xE1y 1 v\xE0 2)? H\xE0nh \u0111\u1ED9ng n\xE0y kh\xF4ng th\u1EC3 ho\xE0n t\xE1c."
+      ko: "\uC804\uCCB4 \uBA85\uB2E8(\uBD80\uC11C\uC7A5\uACFC \uBAA8\uB4E0 \uD300\uC6D0)\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uC774 \uC791\uC5C5\uC740 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      vi: "X\xF3a to\xE0n b\u1ED9 danh s\xE1ch (tr\u01B0\u1EDFng ph\xF2ng v\xE0 t\u1EA5t c\u1EA3 th\xE0nh vi\xEAn)? H\xE0nh \u0111\u1ED9ng n\xE0y kh\xF4ng th\u1EC3 ho\xE0n t\xE1c."
     },
     deleteSelected: { ko: (n) => `\uC120\uD0DD \uC0AD\uC81C (${n})`, vi: (n) => `X\xF3a m\u1EE5c \u0111\xE3 ch\u1ECDn (${n})` },
     confirmDeleteSelected: {
@@ -34212,15 +34213,11 @@
     teamOverall: { ko: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", vi: "T\u1ED5ng qu\u1EA3n l\xFD t\u1EA1i ch\u1ED7" },
     uploadExcel: { ko: "\uC5D1\uC140 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i l\xEAn Excel" },
     uploadModalTitle: { ko: "\uC5D1\uC140\uB85C \uBA85\uB2E8 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i danh s\xE1ch t\u1EEB Excel" },
-    uploadTargetFactory: {
-      ko: "\uAE30\uBCF8 \uB4F1\uB85D \uACF5\uC7A5 (\uC2DC\uD2B8\uBA85\xB7\uACF5\uC7A5 \uC5F4\uB85C \uAD6C\uBD84\uB418\uC9C0 \uC54A\uC744 \uB54C\uB9CC \uC0AC\uC6A9)",
-      vi: "Nh\xE0 m\xE1y m\u1EB7c \u0111\u1ECBnh (ch\u1EC9 d\xF9ng khi kh\xF4ng x\xE1c \u0111\u1ECBnh \u0111\u01B0\u1EE3c qua t\xEAn sheet ho\u1EB7c c\u1ED9t nh\xE0 m\xE1y)"
-    },
     uploadChooseFile: { ko: "\uD30C\uC77C \uC120\uD0DD", vi: "Ch\u1ECDn t\u1EC7p" },
     uploadNoFile: { ko: "\uC120\uD0DD\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4", vi: "Ch\u01B0a ch\u1ECDn t\u1EC7p n\xE0o" },
     uploadHint: {
-      ko: "MSNV(\uC0AC\uBC88), H\u1ECD t\xEAn(\uC131\uBA85), b\u1ED9 ph\u1EADn(\uBD80\uC11C: \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5(\uC9C1\uAE09: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/RMA\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB294 \uADF8 \uAC12 \uADF8\uB300\uB85C, \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC9C1\uAE09\uC774 PQC\uBA74 \uBD80\uC11C \uAC12\uC758 UNIT/ASSY \uD45C\uAE30\uB85C PQC UNIT/PQC ASSY\uB97C \uAD6C\uBD84\uD569\uB2C8\uB2E4. b\u1ED9 ph\u1EADn\uC774 QC\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0 \uC18C\uC18D QC\uB85C \uB4F1\uB85D\uB418\uACE0, \uC870\uC9C1\uB3C4\uC5D0\uB294 \uB9E8 \uB05D\uC758 \uACE0\uC815 Staff \uCE74\uB4DC\uC5D0 \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uC2DC\uD2B8 \uC774\uB984(\uC608: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2)\uC73C\uB85C \uACF5\uC7A5\uC744 \uC790\uB3D9 \uC778\uC2DD\uD574 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4. \uC774\uBBF8 \uB4F1\uB85D\uB41C \uC0AC\uBC88\uC774\uB098 \uD30C\uC77C \uB0B4 \uC911\uBCF5 \uC0AC\uBC88\uC740 \uB4F1\uB85D\uC5D0\uC11C \uC81C\uC678\uB429\uB2C8\uB2E4.",
-      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\u1ED9t MSNV, H\u1ECD t\xEAn, b\u1ED9 ph\u1EADn (\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5 (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/RMA s\u1EBD gi\u1EEF nguy\xEAn trong danh s\xE1ch nh\u01B0ng hi\u1EC3n th\u1ECB l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu ch\u1EE9c v\u1EE5 l\xE0 PQC, gi\xE1 tr\u1ECB UNIT/ASSY trong b\u1ED9 ph\u1EADn s\u1EBD quy\u1EBFt \u0111\u1ECBnh PQC UNIT hay PQC ASSY. N\u1EBFu b\u1ED9 ph\u1EADn l\xE0 QC, nh\xE2n vi\xEAn s\u1EBD hi\u1EC3n th\u1ECB v\u1EDBi b\u1ED9 ph\u1EADn QC trong danh s\xE1ch \u0111\u1EA7y \u0111\u1EE7, v\xE0 xu\u1EA5t hi\u1EC7n trong th\u1EBB Staff c\u1ED1 \u0111\u1ECBnh \u1EDF cu\u1ED1i s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\xEAn sheet (VD: X\u01B0\u1EDFng 1, X\u01B0\u1EDFng 2) s\u1EBD t\u1EF1 nh\u1EADn di\u1EC7n nh\xE0 m\xE1y v\xE0 \u0111\u0103ng k\xFD t\u1EA5t c\u1EA3 c\xF9ng l\xFAc. M\xE3 NV \u0111\xE3 t\u1ED3n t\u1EA1i ho\u1EB7c tr\xF9ng l\u1EB7p trong t\u1EC7p s\u1EBD b\u1ECB lo\u1EA1i kh\u1ECFi \u0111\u0103ng k\xFD."
+      ko: "MSNV(\uC0AC\uBC88), H\u1ECD t\xEAn(\uC131\uBA85), b\u1ED9 ph\u1EADn(\uBD80\uC11C: \uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5(\uC9C1\uAE09: Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA) \uC5F4\uC774 \uD3EC\uD568\uB41C .xlsx, .xls, .csv \uD30C\uC77C\uC744 \uC62C\uB824\uC8FC\uC138\uC694. \uC9C1\uAE09\uC774 IQC/PQC/OQC/RMA\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0\uB294 \uADF8 \uAC12 \uADF8\uB300\uB85C, \uC870\uC9C1\uB3C4\uC5D0\uB294 Inspector\uB85C \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC9C1\uAE09\uC774 PQC\uBA74 \uBD80\uC11C \uAC12\uC758 UNIT/ASSY \uD45C\uAE30\uB85C PQC UNIT/PQC ASSY\uB97C \uAD6C\uBD84\uD569\uB2C8\uB2E4. b\u1ED9 ph\u1EADn\uC774 QC\uBA74 \uC804\uCCB4 \uBA85\uB2E8\uC5D0 \uC18C\uC18D QC\uB85C \uB4F1\uB85D\uB418\uACE0, \uC870\uC9C1\uB3C4\uC5D0\uB294 \uB9E8 \uB05D\uC758 \uACE0\uC815 Staff \uCE74\uB4DC\uC5D0 \uB4F1\uB85D\uB429\uB2C8\uB2E4. \uC2DC\uD2B8\uAC00 \uC5EC\uB7EC \uAC1C\uBA74 \uBAA8\uB450 \uD568\uAED8 \uD55C \uBC88\uC5D0 \uB4F1\uB85D\uD569\uB2C8\uB2E4. \uC774\uBBF8 \uB4F1\uB85D\uB41C \uC0AC\uBC88\uC774\uB098 \uD30C\uC77C \uB0B4 \uC911\uBCF5 \uC0AC\uBC88\uC740 \uB4F1\uB85D\uC5D0\uC11C \uC81C\uC678\uB429\uB2C8\uB2E4.",
+      vi: "T\u1EA3i l\xEAn t\u1EC7p .xlsx, .xls, .csv c\xF3 c\u1ED9t MSNV, H\u1ECD t\xEAn, b\u1ED9 ph\u1EADn (\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790/QC/IQC/PQC UNIT/PQC ASSY/OQC/RMA), ch\u1EE9c v\u1EE5 (Manager/Supervisor 1/Supervisor 2/Staff/IQC/PQC/OQC/RMA). Ch\u1EE9c v\u1EE5 l\xE0 IQC/PQC/OQC/RMA s\u1EBD gi\u1EEF nguy\xEAn trong danh s\xE1ch nh\u01B0ng hi\u1EC3n th\u1ECB l\xE0 Inspector trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu ch\u1EE9c v\u1EE5 l\xE0 PQC, gi\xE1 tr\u1ECB UNIT/ASSY trong b\u1ED9 ph\u1EADn s\u1EBD quy\u1EBFt \u0111\u1ECBnh PQC UNIT hay PQC ASSY. N\u1EBFu b\u1ED9 ph\u1EADn l\xE0 QC, nh\xE2n vi\xEAn s\u1EBD hi\u1EC3n th\u1ECB v\u1EDBi b\u1ED9 ph\u1EADn QC trong danh s\xE1ch \u0111\u1EA7y \u0111\u1EE7, v\xE0 xu\u1EA5t hi\u1EC7n trong th\u1EBB Staff c\u1ED1 \u0111\u1ECBnh \u1EDF cu\u1ED1i s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c. N\u1EBFu c\xF3 nhi\u1EC1u sheet, t\u1EA5t c\u1EA3 s\u1EBD \u0111\u01B0\u1EE3c \u0111\u0103ng k\xFD c\xF9ng l\xFAc. M\xE3 NV \u0111\xE3 t\u1ED3n t\u1EA1i ho\u1EB7c tr\xF9ng l\u1EB7p trong t\u1EC7p s\u1EBD b\u1ECB lo\u1EA1i kh\u1ECFi \u0111\u0103ng k\xFD."
     },
     uploadColumnsNotFound: {
       ko: (cols) => `\uB2E4\uC74C \uC5F4\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${cols}`,
@@ -34323,42 +34320,6 @@
           ]
         }
       ]
-    ),
-    2: seedFactory(
-      2,
-      [{ empNo: "Q2001", name: "\uC724\uD0DC\uC601", position: "\uD488\uC9C8\uBD80\uC11C\uC7A5" }],
-      [
-        { title: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", members: [] },
-        {
-          title: "IQC",
-          members: [
-            { empNo: "Q2011", name: "\uBC30\uBBFC\uC7AC", position: "Upper Manager", status: "\uCD9C\uADFC" },
-            { empNo: "Q2012", name: "\uC1A1\uC9C0\uD638", position: "Inspector", status: "\uCD9C\uADFC" }
-          ]
-        },
-        {
-          title: "PQC UNIT",
-          members: [{ empNo: "Q2021", name: "\uC784\uD558\uB298", position: "Manager", status: "\uBCD1\uAC00", note: "\uBCD1\uC6D0 \uC9C4\uB8CC" }]
-        },
-        {
-          title: "PQC ASSY",
-          members: [{ empNo: "Q2022", name: "\uAC15\uC11C\uC900", position: "Inspector", status: "\uCD9C\uADFC" }]
-        },
-        {
-          title: "OQC",
-          members: [
-            { empNo: "Q2031", name: "\uB178\uC720\uBE48", position: "Supervisor 2", status: "\uCD9C\uADFC" },
-            { empNo: "Q2032", name: "\uAD8C\uB098\uB77C", position: "Inspector", status: "\uCD9C\uC0B0\uD734\uAC00", returnDate: "2026-09-20" }
-          ]
-        },
-        {
-          title: "RMA",
-          members: [
-            { empNo: "Q2041", name: "\uC11C\uC9C0\uD6C8", position: "Manager", status: "\uCD9C\uADFC" },
-            { empNo: "Q2042", name: "\uBB38\uAC00\uC740", position: "Staff", status: "\uCD9C\uADFC" }
-          ]
-        }
-      ]
     )
   };
   var STORAGE_KEY = "qualityPortal.org.v1";
@@ -34416,9 +34377,9 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return initialOrg;
       const parsed = JSON.parse(raw);
-      if (!parsed || !parsed[1] || !parsed[2]) return initialOrg;
+      if (!parsed || !parsed[1]) return initialOrg;
       idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-      return ensureMiddleCard(migrateLegacyTeamNames(parsed));
+      return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
     } catch {
       return initialOrg;
     }
@@ -35353,35 +35314,6 @@
   function normalizeForMatch(s) {
     return String(s ?? "").trim().toLowerCase().normalize("NFC").replace(/[\s_\-]/g, "");
   }
-  var FACTORY_TEXT_PATTERNS = {
-    1: ["x\u01B0\u1EDFng1", "xuong1", "1\uACF5\uC7A5", "factory1", "nh\xE0m\xE1y1", "nhamay1", "plant1"],
-    2: ["x\u01B0\u1EDFng2", "xuong2", "2\uACF5\uC7A5", "factory2", "nh\xE0m\xE1y2", "nhamay2", "plant2"]
-  };
-  function detectFactoryFromText(text) {
-    const norm = normalizeForMatch(text);
-    if (!norm) return null;
-    for (const [f, patterns] of Object.entries(FACTORY_TEXT_PATTERNS)) {
-      if (patterns.some((p) => norm.includes(p))) return Number(f);
-    }
-    return null;
-  }
-  function normalizeFactoryValue(raw) {
-    const fromText = detectFactoryFromText(raw);
-    if (fromText) return fromText;
-    const digits = String(raw ?? "").replace(/\D/g, "");
-    if (digits === "1") return 1;
-    if (digits === "2") return 2;
-    return null;
-  }
-  function detectSheetFactory(sheetName, rows) {
-    const fromName = detectFactoryFromText(sheetName);
-    if (fromName) return fromName;
-    for (let i = 0; i < Math.min(3, rows.length); i++) {
-      const found = detectFactoryFromText(rows[i].join(" "));
-      if (found) return found;
-    }
-    return null;
-  }
   function findHeaderRow(rows, maxScan = 5) {
     let best = { idx: 0, map: {}, count: -1 };
     for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
@@ -35391,13 +35323,11 @@
     }
     return best;
   }
-  var xuongLabel = (n) => `X\u01B0\u1EDFng ${n}`;
-  function ExcelUploadModal({ org, setOrg, defaultFactory, onClose, onRegistered }) {
+  function ExcelUploadModal({ org, setOrg, onClose, onRegistered }) {
     const { lang } = useLang();
     const [fileName, setFileName] = (0, import_react.useState)("");
     const [rows, setRows] = (0, import_react.useState)(null);
     const [sheetIssues, setSheetIssues] = (0, import_react.useState)([]);
-    const [targetFactory, setTargetFactory] = (0, import_react.useState)(defaultFactory === 1 || defaultFactory === 2 ? defaultFactory : 1);
     const [result, setResult] = (0, import_react.useState)(null);
     const fileInputRef = (0, import_react.useRef)(null);
     const validRows = rows ? rows.filter((r) => r.valid) : [];
@@ -35412,7 +35342,7 @@
       const buf = await file.arrayBuffer();
       const wb = readSync(buf, { type: "array" });
       const existingEmpNos = /* @__PURE__ */ new Set();
-      [1, 2].forEach((f) => {
+      FACTORIES.forEach((f) => {
         const d = org[f];
         if (!d) return;
         (d.heads || []).forEach((h) => {
@@ -35442,7 +35372,6 @@
           return;
         }
         const colMap = headerInfo.map;
-        const sheetFactory = detectSheetFactory(sheetName, raw);
         raw.slice(headerInfo.idx + 1).filter((r) => r.some((cell) => String(cell ?? "").trim() !== "")).forEach((r, i) => {
           const empNo = String(r[colMap.empNo] ?? "").trim();
           const name = String(r[colMap.name] ?? "").trim();
@@ -35455,7 +35384,6 @@
             if (normDeptRaw.includes("unit")) dept = "PQC UNIT";
             else if (normDeptRaw.includes("assy")) dept = "PQC ASSY";
           }
-          const rowFactory = colMap.factory != null ? normalizeFactoryValue(r[colMap.factory]) : null;
           const normEmpNo = empNo.toUpperCase();
           let isDuplicate = false;
           if (normEmpNo) {
@@ -35480,7 +35408,6 @@
             dept,
             posRaw,
             position,
-            factory: rowFactory || sheetFactory,
             valid: reasons.length === 0,
             reasons
           });
@@ -35495,7 +35422,7 @@
       setOrg((prev) => {
         let next = prev;
         validRows.forEach((r) => {
-          const f = r.factory || targetFactory;
+          const f = 1;
           const factoryData = next[f];
           if (!factoryData) return;
           const newMember = { id: nextId(), empNo: r.empNo, name: r.name, position: r.position, status: "\uCD9C\uADFC", factory: f };
@@ -35565,30 +35492,6 @@
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textSecondary }, children: t(lang, "uploadHint") }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: COLORS.textSecondary }, children: [
-                  t(lang, "uploadTargetFactory"),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "select",
-                    {
-                      value: targetFactory,
-                      onChange: (e) => setTargetFactory(Number(e.target.value)),
-                      style: {
-                        width: 200,
-                        height: 32,
-                        padding: "0 8px",
-                        borderRadius: 6,
-                        border: `0.5px solid ${COLORS.border}`,
-                        fontSize: 13,
-                        color: COLORS.textPrimary,
-                        background: COLORS.card
-                      },
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 1, children: xuongLabel(1) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: 2, children: xuongLabel(2) })
-                      ]
-                    }
-                  )
-                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 10 }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "button",
@@ -35634,7 +35537,6 @@
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { border: `0.5px solid ${COLORS.border}`, borderRadius: 8, overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { maxHeight: 260, overflowY: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { style: { background: "#F4F4F0", position: "sticky", top: 0 }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "uploadColRow") }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "colFactory") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "colEmpNo") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "fieldName") }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { style: { textAlign: "left", padding: "6px 8px" }, children: t(lang, "fieldDept") }),
@@ -35643,7 +35545,6 @@
                     ] }) }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: rows.map((r) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { style: { background: r.valid ? "transparent" : COLORS.dangerBg }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textSecondary : COLORS.danger }, children: r.rowNum }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.factory ? r.valid ? COLORS.textPrimary : COLORS.danger : COLORS.danger }, children: r.factory ? xuongLabel(r.factory) : `${xuongLabel(targetFactory)} *` }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.empNo || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.name || "-" }),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { style: { padding: "5px 8px", color: r.valid ? COLORS.textPrimary : COLORS.danger }, children: r.dept || r.deptRaw || "-" }),
@@ -35713,7 +35614,7 @@
     const langCtx = (0, import_react.useMemo)(() => ({ lang, setLang, t: (key, ...args) => t(lang, key, ...args) }), [lang]);
     const allEmployees = (0, import_react.useMemo)(() => {
       const list = [];
-      [1, 2].forEach((f) => {
+      FACTORIES.forEach((f) => {
         const d = org[f];
         d.heads.forEach(
           (h) => list.push({ ...h, team: "\uBD80\uC11C\uC7A5", isHead: true, status: "\uCD9C\uADFC", headCountInFactory: d.heads.length })
@@ -35825,7 +35726,7 @@
       const idSet = new Set(entries.map((e) => e.id));
       setOrg((prev) => {
         const next = { ...prev };
-        [1, 2].forEach((f) => {
+        FACTORIES.forEach((f) => {
           const factoryData = next[f];
           next[f] = {
             ...factoryData,
@@ -35841,7 +35742,7 @@
     const clearAllEmployees = () => {
       setOrg((prev) => {
         const next = {};
-        [1, 2].forEach((f) => {
+        FACTORIES.forEach((f) => {
           next[f] = {
             ...prev[f],
             heads: [],
@@ -35954,8 +35855,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 10 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 6 }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: "all", label: t(lang, "all") }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 1, label: t(lang, "factoryLabel", 1) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 2, label: t(lang, "factoryLabel", 2) })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryBtn, { value: 1, label: t(lang, "factoryLabel", 1) })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 6 }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LangBtn, { value: "ko", label: "\uD55C\uAD6D\uC5B4" }),
@@ -36012,7 +35912,7 @@
             }) })
           ] })
         ] }),
-        tab === "org" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 28 }, children: (factory === "all" ? [1, 2] : [factory]).map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryOrgPanel, { factory: f, data: org[f], setOrg }, f)) }),
+        tab === "org" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 28 }, children: (factory === "all" ? FACTORIES : [factory]).map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryOrgPanel, { factory: f, data: org[f], setOrg }, f)) }),
         tab === "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 18px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" }, children: ["\uC804\uCCB4", ...STATUS_OPTIONS].map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -36262,7 +36162,6 @@
         {
           org,
           setOrg,
-          defaultFactory: factory,
           onClose: () => setShowUpload(false),
           onRegistered: () => {
             setShowUpload(false);
