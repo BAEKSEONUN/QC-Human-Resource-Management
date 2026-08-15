@@ -140,8 +140,15 @@ const DICT = {
     ko: (n) => `선택한 ${n}명을 삭제할까요?`,
     vi: (n) => `Xóa ${n} người đã chọn?`,
   },
+  addListRow: { ko: "행 추가", vi: "Thêm dòng" },
+  unassignedBadge: { ko: "미배치", vi: "Chưa xếp" },
+  unassignedPoolTitle: {
+    ko: (n) => `미배치 인원 ${n}명 — 조직도 수정 모드에서 아래로 끌어다 카드에 배치하세요`,
+    vi: (n) => `${n} người chưa xếp — Ở chế độ chỉnh sửa, kéo vào thẻ bên dưới để xếp`,
+  },
   dragTeamTitle: { ko: "드래그하여 팀 순서 변경", vi: "Kéo để đổi thứ tự nhóm" },
   dragMemberTitle: { ko: "드래그하여 다른 팀으로 이동", vi: "Kéo để chuyển sang nhóm khác" },
+  dragUnassignedTitle: { ko: "드래그하여 조직도 카드에 배치", vi: "Kéo vào thẻ trong sơ đồ tổ chức để xếp" },
   dragListRowTitle: { ko: "드래그하여 순서 변경", vi: "Kéo để đổi thứ tự" },
   uploadPhotoTitle: { ko: "사진 등록/변경", vi: "Đăng ký/đổi ảnh" },
   editTeamNameTitle: { ko: "팀 이름 수정", vi: "Sửa tên nhóm" },
@@ -246,7 +253,7 @@ const seedFactory = (factory, headsInfo, teamsSeed) => {
     members: t.members.map((m) => ({ id: nextId(), ...m, factory })),
   }));
   const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
-  return { heads, teams, qcMembers: [], middleCard: newMiddleCard() };
+  return { heads, teams, qcMembers: [], middleCard: newMiddleCard(), unassigned: [] };
 };
 
 const initialOrg = {
@@ -334,6 +341,7 @@ function resetStatusesForNewDay(org, todayISO) {
       teams: data.teams.map((tm) => ({ ...tm, members: tm.members.map(resetMember) })),
       qcMembers: (data.qcMembers || []).map(resetMember),
       middleCard: data.middleCard ? { ...data.middleCard, members: data.middleCard.members.map(resetMember) } : data.middleCard,
+      unassigned: (data.unassigned || []).map(resetMember),
     };
   });
   return changed ? next : org;
@@ -362,6 +370,9 @@ function collectMaxId(org) {
         if (m.id > max) max = m.id;
       });
     }
+    (factoryData.unassigned || []).forEach((m) => {
+      if (m.id > max) max = m.id;
+    });
   });
   return max;
 }
@@ -396,6 +407,23 @@ function ensureMiddleCard(org) {
   return changed ? next : org;
 }
 
+// 예전 버전에서 저장된 데이터에는 unassigned(전체 명단에서 추가했지만 아직
+// 조직도 카드에 배치하지 않은 인원 보관함)가 없으므로, 불러올 때 없으면 빈
+// 배열로 채워 넣는다.
+function ensureUnassigned(org) {
+  let changed = false;
+  const next = {};
+  Object.entries(org).forEach(([factory, data]) => {
+    if (data.unassigned) {
+      next[factory] = data;
+    } else {
+      changed = true;
+      next[factory] = { ...data, unassigned: [] };
+    }
+  });
+  return changed ? next : org;
+}
+
 // localStorage에서 읽었든, 내보내기/불러오기 파일에서 읽었든 동일한 절차로
 // 검증·마이그레이션한다. 유효하지 않으면 null을 반환한다.
 function normalizeLoadedOrg(parsed) {
@@ -403,7 +431,7 @@ function normalizeLoadedOrg(parsed) {
   // 2공장은 앱에서 완전히 제거되었으므로, 예전에 저장된 데이터에 남아 있어도
   // 더 이상 읽어오지 않는다 (id 충돌 방지를 위한 idSeq 계산에는 포함시킨다).
   idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-  return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+  return ensureUnassigned(ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] })));
 }
 
 function loadInitialOrg() {
@@ -632,6 +660,135 @@ function MemberForm({ initial, isHead, onSave, onCancel }) {
             background: COLORS.headDark,
             color: "#fff",
             fontWeight: 500,
+          }}
+        >
+          {t(lang, "save")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- 전체 명단 "행 추가" 폼 ----------
+// 아직 어느 팀에도 속하지 않은 사람을 사진/사번/성명/소속/직급과 함께 등록한다
+// (소속·직급은 드롭다운으로만 고를 수 있다). 저장하면 조직도가 아니라
+// 미배치 보관함(unassigned)에 들어가고, 조직도 탭에서 수정 모드로 드래그해
+// 원하는 카드에 배치할 수 있다.
+function AddListRowForm({ onCancel, onSave }) {
+  const { lang } = useLang();
+  const [photo, setPhoto] = useState("");
+  const [empNo, setEmpNo] = useState("");
+  const [name, setName] = useState("");
+  const [dept, setDept] = useState(DEPARTMENTS[0]);
+  const [position, setPosition] = useState(POSITIONS[0]);
+
+  const submit = () => {
+    if (!empNo.trim() || !name.trim()) return;
+    onSave({ photo: photo || undefined, empNo: empNo.trim(), name: name.trim(), dept, position });
+  };
+
+  const selectStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    height: 32,
+    padding: "0 8px",
+    borderRadius: 6,
+    border: `0.5px solid ${COLORS.border}`,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    background: COLORS.card,
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        padding: 14,
+        borderRadius: 10,
+        border: `0.5px solid ${COLORS.borderStrong}`,
+        background: "#FAFAF7",
+        marginBottom: 12,
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}>
+        <label style={{ cursor: "pointer", flexShrink: 0 }} title={t(lang, "uploadPhotoTitle")}>
+          {photo ? (
+            <img src={photo} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+          ) : (
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: COLORS.page,
+                border: `0.5px dashed ${COLORS.borderStrong}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                color: COLORS.textMuted,
+              }}
+            >
+              +
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                setPhoto(await readImageAsDataUrl(file));
+              } catch {
+                // 이미지를 읽지 못하면 조용히 무시
+              }
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <TextField label={t(lang, "fieldEmpNo")} value={empNo} onChange={setEmpNo} placeholder="Q1051" style={{ width: 130 }} />
+        <TextField label={t(lang, "fieldName")} value={name} onChange={setName} placeholder={t(lang, "namePlaceholder")} style={{ width: 150 }} />
+        <TextField label={t(lang, "fieldDept")} style={{ width: 150 }}>
+          <select value={dept} onChange={(e) => setDept(e.target.value)} style={selectStyle}>
+            {DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>
+                {trTeamTitle(d, lang)}
+              </option>
+            ))}
+          </select>
+        </TextField>
+        <TextField label={t(lang, "fieldPosition")} style={{ width: 150 }}>
+          <select value={position} onChange={(e) => setPosition(e.target.value)} style={selectStyle}>
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </TextField>
+      </div>
+      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+        <button
+          onClick={onCancel}
+          style={{ fontSize: 12, padding: "5px 12px", borderRadius: 6, border: `0.5px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer" }}
+        >
+          {t(lang, "cancel")}
+        </button>
+        <button
+          onClick={submit}
+          style={{
+            fontSize: 12,
+            padding: "5px 12px",
+            borderRadius: 6,
+            border: "none",
+            background: COLORS.headDark,
+            color: "#fff",
+            fontWeight: 500,
+            cursor: "pointer",
           }}
         >
           {t(lang, "save")}
@@ -1076,25 +1233,96 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
     });
   };
 
-  // 팀원을 다른 팀 카드로 드래그해서 옮기는 상태. 직급/이름 등은 그대로
-  // 두고 소속 팀만 바뀐다.
+  // 팀원을 다른 카드(팀 카드/단독 카드/Staff 카드/미배치 보관함)로 드래그해서
+  // 옮기는 상태. location: {kind:"team", id} | {kind:"middleCard"} |
+  // {kind:"qcStaff"} | {kind:"unassigned"}
   const [draggedMemberInfo, setDraggedMemberInfo] = useState(null);
-  const moveMemberBetweenTeams = (sourceTeamId, targetTeamId, memberId) => {
-    if (sourceTeamId === targetTeamId) return;
-    updateTeams((teams) => {
-      const sourceTeam = teams.find((t) => t.id === sourceTeamId);
-      const member = sourceTeam?.members.find((m) => m.id === memberId);
-      if (!member) return teams;
-      return teams.map((t) => {
-        if (t.id === sourceTeamId) return { ...t, members: t.members.filter((m) => m.id !== memberId) };
-        if (t.id === targetTeamId) return { ...t, members: [...t.members, member] };
-        return t;
-      });
+  const sameLocation = (a, b) => {
+    if (!a || !b || a.kind !== b.kind) return false;
+    return a.kind === "team" ? a.id === b.id : true;
+  };
+  const moveMember = (source, target, memberId) => {
+    if (sameLocation(source, target)) return;
+    setOrg((prev) => {
+      const factoryData = prev[factory];
+      let member;
+      if (source.kind === "team") member = factoryData.teams.find((t) => t.id === source.id)?.members.find((m) => m.id === memberId);
+      else if (source.kind === "middleCard") member = factoryData.middleCard?.members.find((m) => m.id === memberId);
+      else if (source.kind === "qcStaff") member = (factoryData.qcMembers || []).find((m) => m.id === memberId);
+      else if (source.kind === "unassigned") member = (factoryData.unassigned || []).find((m) => m.id === memberId);
+      if (!member) return prev;
+
+      // dept(부서)는 unassigned 보관함에서 소속을 보여주기 위한 값이라, Staff
+      // 카드가 아닌 다른 곳으로 옮겨지면 더 이상 의미가 없으므로 제거한다.
+      const { dept, ...stripped } = member;
+      const placed = target.kind === "qcStaff" ? member : stripped;
+
+      const next = { ...factoryData };
+      if (source.kind === "team") next.teams = next.teams.map((t) => (t.id === source.id ? { ...t, members: t.members.filter((m) => m.id !== memberId) } : t));
+      else if (source.kind === "middleCard") next.middleCard = { ...next.middleCard, members: next.middleCard.members.filter((m) => m.id !== memberId) };
+      else if (source.kind === "qcStaff") next.qcMembers = (next.qcMembers || []).filter((m) => m.id !== memberId);
+      else if (source.kind === "unassigned") next.unassigned = (next.unassigned || []).filter((m) => m.id !== memberId);
+
+      if (target.kind === "team") next.teams = next.teams.map((t) => (t.id === target.id ? { ...t, members: [...t.members, placed] } : t));
+      else if (target.kind === "middleCard") next.middleCard = { ...(next.middleCard || newMiddleCard()), members: [...(next.middleCard?.members || []), placed] };
+      else if (target.kind === "qcStaff") next.qcMembers = [...(next.qcMembers || []), placed];
+
+      return { ...prev, [factory]: next };
     });
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }}>
+      {/* 전체 명단에서 "행 추가"로 새로 등록했지만 아직 조직도 카드에 배치하지
+          않은 인원 보관함. 수정 모드에서 아래 카드들로 드래그해 배치한다. */}
+      {(data.unassigned || []).length > 0 && (
+        <div
+          style={{
+            width: "100%",
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 10,
+            border: `1px dashed ${COLORS.borderStrong}`,
+            background: "#FAFAF7",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 500, color: COLORS.textSecondary, marginBottom: 8 }}>
+            {t(lang, "unassignedPoolTitle", data.unassigned.length)}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {data.unassigned.map((m) => (
+              <div
+                key={m.id}
+                draggable={isEditing}
+                onDragStart={() => setDraggedMemberInfo({ memberId: m.id, source: { kind: "unassigned" } })}
+                onDragEnd={() => setDraggedMemberInfo(null)}
+                title={isEditing ? t(lang, "dragUnassignedTitle") : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 10px 5px 5px",
+                  borderRadius: 999,
+                  border: `0.5px solid ${COLORS.border}`,
+                  background: COLORS.card,
+                  cursor: isEditing ? "grab" : "default",
+                }}
+              >
+                {m.photo ? (
+                  <img src={m.photo} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                ) : (
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: COLORS.page }} />
+                )}
+                <span style={{ fontSize: 12, fontWeight: 500, color: COLORS.textPrimary }}>{m.name}</span>
+                <span style={{ fontSize: 11, color: COLORS.textMuted }}>{orgPositionLabel(m.position)}</span>
+                {m.dept && <span style={{ fontSize: 11, color: COLORS.textMuted }}>· {trTeamTitle(m.dept, lang)}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 부서장은 일반 팀원과 같은 카드 형식(색만 다르게)으로, 위/아래 드래그로
           서열을 표현할 수 있도록 세로로 쌓고 카드끼리 선으로 연결해 보여준다.
           드래그 정렬 자체는 수정 모드와 무관하게 항상 가능하다. */}
@@ -1269,6 +1497,13 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
               updateMiddleCard((mc) => ({ ...mc, members: mc.members.filter((m) => m.id !== memberId) }));
             }
           }}
+          onMemberDragStart={(memberId) => setDraggedMemberInfo({ memberId, source: { kind: "middleCard" } })}
+          onMemberDragEnd={() => setDraggedMemberInfo(null)}
+          isMemberDropTarget={!!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "middleCard" })}
+          onMemberDrop={() => {
+            if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "middleCard" }, draggedMemberInfo.memberId);
+            setDraggedMemberInfo(null);
+          }}
         />
       </div>
 
@@ -1335,11 +1570,11 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
                 );
               }
             }}
-            onMemberDragStart={(memberId) => setDraggedMemberInfo({ memberId, sourceTeamId: team.id })}
+            onMemberDragStart={(memberId) => setDraggedMemberInfo({ memberId, source: { kind: "team", id: team.id } })}
             onMemberDragEnd={() => setDraggedMemberInfo(null)}
-            isMemberDropTarget={!!draggedMemberInfo && draggedMemberInfo.sourceTeamId !== team.id}
+            isMemberDropTarget={!!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "team", id: team.id })}
             onMemberDrop={() => {
-              if (draggedMemberInfo) moveMemberBetweenTeams(draggedMemberInfo.sourceTeamId, team.id, draggedMemberInfo.memberId);
+              if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "team", id: team.id }, draggedMemberInfo.memberId);
               setDraggedMemberInfo(null);
             }}
           />
@@ -1364,6 +1599,13 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
             if (confirm(t(lang, "confirmDeleteMember"))) {
               updateQcMembers((members) => members.filter((m) => m.id !== memberId));
             }
+          }}
+          onMemberDragStart={(memberId) => setDraggedMemberInfo({ memberId, source: { kind: "qcStaff" } })}
+          onMemberDragEnd={() => setDraggedMemberInfo(null)}
+          isMemberDropTarget={!!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "qcStaff" })}
+          onMemberDrop={() => {
+            if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "qcStaff" }, draggedMemberInfo.memberId);
+            setDraggedMemberInfo(null);
           }}
         />
 
@@ -1559,6 +1801,9 @@ function ExcelUploadModal({ org, setOrg, onClose, onRegistered }) {
           if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
         });
       }
+      (d.unassigned || []).forEach((m) => {
+        if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+      });
     });
     // 파일 안에서 이미 등장한 사번(여러 시트에 걸쳐서도)을 추적해 파일
     // 내부 중복도 잡아낸다.
@@ -1841,6 +2086,7 @@ export default function QualityPortal() {
   const [dragRowId, setDragRowId] = useState(null);
   const [overRowId, setOverRowId] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [addingListRow, setAddingListRow] = useState(false);
   const importFileRef = useRef(null);
   // 서버로부터 받은 데이터를 반영하는 중인지 표시 (이 경우 다시 서버로
   // 되쏘지 않는다 - 안 그러면 pull과 push가 서로 계속 되풀이된다).
@@ -2016,6 +2262,9 @@ export default function QualityPortal() {
       if (d.middleCard) {
         d.middleCard.members.forEach((m) => list.push({ ...m, team: d.middleCard.title, isMiddleCard: true }));
       }
+      // 전체 명단 "행 추가"로 만들었지만 아직 조직도 카드로 드래그해 배치하지
+      // 않은 인원. team에는 추가할 때 고른 소속(dept)이 그대로 들어간다.
+      (d.unassigned || []).forEach((m) => list.push({ ...m, team: m.dept || "", isUnassigned: true }));
     });
     return list;
   }, [org]);
@@ -2154,6 +2403,15 @@ export default function QualityPortal() {
           },
         };
       }
+      if (entry.isUnassigned) {
+        return {
+          ...prev,
+          [entry.factory]: {
+            ...factoryData,
+            unassigned: (factoryData.unassigned || []).map((m) => (m.id === entry.id ? { ...m, ...data } : m)),
+          },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -2187,6 +2445,12 @@ export default function QualityPortal() {
           },
         };
       }
+      if (entry.isUnassigned) {
+        return {
+          ...prev,
+          [entry.factory]: { ...factoryData, unassigned: (factoryData.unassigned || []).filter((m) => m.id !== entry.id) },
+        };
+      }
       return {
         ...prev,
         [entry.factory]: {
@@ -2199,8 +2463,8 @@ export default function QualityPortal() {
     });
   };
 
-  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원/QC/단독카드 항목이
-  // 섞여 있어도 factory별로 heads·members·qcMembers·middleCard에서 각각 걸러낸다.
+  // 체크박스로 고른 여러 명을 한 번에 지운다. 부서장/팀원/QC/단독카드/미배치 항목이
+  // 섞여 있어도 factory별로 heads·members·qcMembers·middleCard·unassigned에서 각각 걸러낸다.
   const deleteListEntries = (entries) => {
     const idSet = new Set(entries.map((e) => e.id));
     setOrg((prev) => {
@@ -2215,6 +2479,7 @@ export default function QualityPortal() {
           middleCard: factoryData.middleCard
             ? { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => !idSet.has(m.id)) }
             : factoryData.middleCard,
+          unassigned: (factoryData.unassigned || []).filter((m) => !idSet.has(m.id)),
         };
       });
       return next;
@@ -2233,12 +2498,27 @@ export default function QualityPortal() {
           teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })),
           qcMembers: [],
           middleCard: prev[f].middleCard ? { ...prev[f].middleCard, members: [] } : prev[f].middleCard,
+          unassigned: [],
         };
       });
       return next;
     });
     setSelectedListIds(new Set());
     setEditingListId(null);
+  };
+
+  // 전체 명단 "행 추가" 폼에서 저장한 인원을 미배치 보관함(unassigned)에
+  // 넣는다. 아직 어느 조직도 카드에도 속하지 않으므로, 조직도 탭에서
+  // 수정 모드로 드래그해 원하는 카드에 배치해야 한다.
+  const handleAddListRow = (data) => {
+    setOrg((prev) => ({
+      ...prev,
+      1: {
+        ...prev[1],
+        unassigned: [...(prev[1].unassigned || []), { id: nextId(), ...data, status: "출근", factory: 1 }],
+      },
+    }));
+    setAddingListRow(false);
   };
 
   const FactoryBtn = ({ value, label }) => (
@@ -2501,6 +2781,30 @@ export default function QualityPortal() {
                   <button
                     onClick={() => {
                       if (listLocked) return;
+                      setEditingListId(null);
+                      setAddingListRow((v) => !v);
+                    }}
+                    disabled={listLocked}
+                    title={listLocked ? t(lang, "editDoneDisabledTitle") : undefined}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: `0.5px solid ${addingListRow ? COLORS.headDark : COLORS.borderStrong}`,
+                      background: addingListRow ? COLORS.headDark : COLORS.card,
+                      color: addingListRow ? "#fff" : COLORS.textPrimary,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: listLocked ? "not-allowed" : "pointer",
+                      opacity: listLocked ? 0.65 : 1,
+                    }}
+                  >
+                    <span style={{ marginRight: 4 }} aria-hidden="true">+</span>
+                    {t(lang, "addListRow")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (listLocked) return;
                       if (listEditing) setSelectedListIds(new Set());
                       setListEditing((v) => !v);
                     }}
@@ -2628,6 +2932,8 @@ export default function QualityPortal() {
                   />
                 </div>
               </div>
+
+              {addingListRow && <AddListRowForm onCancel={() => setAddingListRow(false)} onSave={handleAddListRow} />}
 
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: listSummary.parts.length > 0 ? 6 : 0 }}>
@@ -2822,7 +3128,24 @@ export default function QualityPortal() {
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.empNo}</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{e.name}</div>
-                        <div style={{ fontSize: 11, color: COLORS.textMuted }}>{teamLabel}</div>
+                        <div style={{ fontSize: 11, color: COLORS.textMuted, display: "flex", alignItems: "center", gap: 5 }}>
+                          <span>{teamLabel}</span>
+                          {e.isUnassigned && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 500,
+                                padding: "1px 6px",
+                                borderRadius: 999,
+                                color: COLORS.warning,
+                                background: COLORS.warningBg,
+                                border: `0.5px solid ${COLORS.warning}`,
+                              }}
+                            >
+                              {t(lang, "unassignedBadge")}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{e.position}</span>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "factoryLabel", e.factory)}</span>

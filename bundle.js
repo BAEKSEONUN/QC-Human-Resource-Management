@@ -34192,8 +34192,15 @@
       ko: (n) => `\uC120\uD0DD\uD55C ${n}\uBA85\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?`,
       vi: (n) => `X\xF3a ${n} ng\u01B0\u1EDDi \u0111\xE3 ch\u1ECDn?`
     },
+    addListRow: { ko: "\uD589 \uCD94\uAC00", vi: "Th\xEAm d\xF2ng" },
+    unassignedBadge: { ko: "\uBBF8\uBC30\uCE58", vi: "Ch\u01B0a x\u1EBFp" },
+    unassignedPoolTitle: {
+      ko: (n) => `\uBBF8\uBC30\uCE58 \uC778\uC6D0 ${n}\uBA85 \u2014 \uC870\uC9C1\uB3C4 \uC218\uC815 \uBAA8\uB4DC\uC5D0\uC11C \uC544\uB798\uB85C \uB04C\uC5B4\uB2E4 \uCE74\uB4DC\uC5D0 \uBC30\uCE58\uD558\uC138\uC694`,
+      vi: (n) => `${n} ng\u01B0\u1EDDi ch\u01B0a x\u1EBFp \u2014 \u1EDE ch\u1EBF \u0111\u1ED9 ch\u1EC9nh s\u1EEDa, k\xE9o v\xE0o th\u1EBB b\xEAn d\u01B0\u1EDBi \u0111\u1EC3 x\u1EBFp`
+    },
     dragTeamTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uD300 \uC21C\uC11C \uBCC0\uACBD", vi: "K\xE9o \u0111\u1EC3 \u0111\u1ED5i th\u1EE9 t\u1EF1 nh\xF3m" },
     dragMemberTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uB2E4\uB978 \uD300\uC73C\uB85C \uC774\uB3D9", vi: "K\xE9o \u0111\u1EC3 chuy\u1EC3n sang nh\xF3m kh\xE1c" },
+    dragUnassignedTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uC870\uC9C1\uB3C4 \uCE74\uB4DC\uC5D0 \uBC30\uCE58", vi: "K\xE9o v\xE0o th\u1EBB trong s\u01A1 \u0111\u1ED3 t\u1ED5 ch\u1EE9c \u0111\u1EC3 x\u1EBFp" },
     dragListRowTitle: { ko: "\uB4DC\uB798\uADF8\uD558\uC5EC \uC21C\uC11C \uBCC0\uACBD", vi: "K\xE9o \u0111\u1EC3 \u0111\u1ED5i th\u1EE9 t\u1EF1" },
     uploadPhotoTitle: { ko: "\uC0AC\uC9C4 \uB4F1\uB85D/\uBCC0\uACBD", vi: "\u0110\u0103ng k\xFD/\u0111\u1ED5i \u1EA3nh" },
     editTeamNameTitle: { ko: "\uD300 \uC774\uB984 \uC218\uC815", vi: "S\u1EEDa t\xEAn nh\xF3m" },
@@ -34282,7 +34289,7 @@
       members: t2.members.map((m) => ({ id: nextId(), ...m, factory }))
     }));
     const heads = headsInfo.map((h) => ({ id: nextId(), ...h, factory }));
-    return { heads, teams, qcMembers: [], middleCard: newMiddleCard() };
+    return { heads, teams, qcMembers: [], middleCard: newMiddleCard(), unassigned: [] };
   };
   var initialOrg = {
     1: seedFactory(
@@ -34353,7 +34360,8 @@
         ...data,
         teams: data.teams.map((tm) => ({ ...tm, members: tm.members.map(resetMember) })),
         qcMembers: (data.qcMembers || []).map(resetMember),
-        middleCard: data.middleCard ? { ...data.middleCard, members: data.middleCard.members.map(resetMember) } : data.middleCard
+        middleCard: data.middleCard ? { ...data.middleCard, members: data.middleCard.members.map(resetMember) } : data.middleCard,
+        unassigned: (data.unassigned || []).map(resetMember)
       };
     });
     return changed ? next : org;
@@ -34379,6 +34387,9 @@
           if (m.id > max) max = m.id;
         });
       }
+      (factoryData.unassigned || []).forEach((m) => {
+        if (m.id > max) max = m.id;
+      });
     });
     return max;
   }
@@ -34406,10 +34417,23 @@
     });
     return changed ? next : org;
   }
+  function ensureUnassigned(org) {
+    let changed = false;
+    const next = {};
+    Object.entries(org).forEach(([factory, data]) => {
+      if (data.unassigned) {
+        next[factory] = data;
+      } else {
+        changed = true;
+        next[factory] = { ...data, unassigned: [] };
+      }
+    });
+    return changed ? next : org;
+  }
   function normalizeLoadedOrg(parsed) {
     if (!parsed || !parsed[1]) return null;
     idSeq = Math.max(idSeq, collectMaxId(parsed) + 1);
-    return ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] }));
+    return ensureUnassigned(ensureMiddleCard(migrateLegacyTeamNames({ 1: parsed[1] })));
   }
   function loadInitialOrg() {
     try {
@@ -34612,6 +34636,116 @@
                   background: COLORS.headDark,
                   color: "#fff",
                   fontWeight: 500
+                },
+                children: t(lang, "save")
+              }
+            )
+          ] })
+        ]
+      }
+    );
+  }
+  function AddListRowForm({ onCancel, onSave }) {
+    const { lang } = useLang();
+    const [photo, setPhoto] = (0, import_react.useState)("");
+    const [empNo, setEmpNo] = (0, import_react.useState)("");
+    const [name, setName] = (0, import_react.useState)("");
+    const [dept, setDept] = (0, import_react.useState)(DEPARTMENTS[0]);
+    const [position, setPosition] = (0, import_react.useState)(POSITIONS[0]);
+    const submit = () => {
+      if (!empNo.trim() || !name.trim()) return;
+      onSave({ photo: photo || void 0, empNo: empNo.trim(), name: name.trim(), dept, position });
+    };
+    const selectStyle = {
+      width: "100%",
+      boxSizing: "border-box",
+      height: 32,
+      padding: "0 8px",
+      borderRadius: 6,
+      border: `0.5px solid ${COLORS.border}`,
+      fontSize: 13,
+      color: COLORS.textPrimary,
+      background: COLORS.card
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+      "div",
+      {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          padding: 14,
+          borderRadius: 10,
+          border: `0.5px solid ${COLORS.borderStrong}`,
+          background: "#FAFAF7",
+          marginBottom: 12
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { style: { cursor: "pointer", flexShrink: 0 }, title: t(lang, "uploadPhotoTitle"), children: [
+              photo ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: photo, alt: "", style: { width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" } }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "div",
+                {
+                  style: {
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: COLORS.page,
+                    border: `0.5px dashed ${COLORS.borderStrong}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 18,
+                    color: COLORS.textMuted
+                  },
+                  children: "+"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "input",
+                {
+                  type: "file",
+                  accept: "image/*",
+                  style: { display: "none" },
+                  onChange: async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      setPhoto(await readImageAsDataUrl(file));
+                    } catch {
+                    }
+                    e.target.value = "";
+                  }
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, { label: t(lang, "fieldEmpNo"), value: empNo, onChange: setEmpNo, placeholder: "Q1051", style: { width: 130 } }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, { label: t(lang, "fieldName"), value: name, onChange: setName, placeholder: t(lang, "namePlaceholder"), style: { width: 150 } }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, { label: t(lang, "fieldDept"), style: { width: 150 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: dept, onChange: (e) => setDept(e.target.value), style: selectStyle, children: DEPARTMENTS.map((d) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: d, children: trTeamTitle(d, lang) }, d)) }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, { label: t(lang, "fieldPosition"), style: { width: 150 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: position, onChange: (e) => setPosition(e.target.value), style: selectStyle, children: POSITIONS.map((p) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: p, children: p }, p)) }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 6, justifyContent: "flex-end" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                onClick: onCancel,
+                style: { fontSize: 12, padding: "5px 12px", borderRadius: 6, border: `0.5px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer" },
+                children: t(lang, "cancel")
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                onClick: submit,
+                style: {
+                  fontSize: 12,
+                  padding: "5px 12px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: COLORS.headDark,
+                  color: "#fff",
+                  fontWeight: 500,
+                  cursor: "pointer"
                 },
                 children: t(lang, "save")
               }
@@ -35011,20 +35145,80 @@
       });
     };
     const [draggedMemberInfo, setDraggedMemberInfo] = (0, import_react.useState)(null);
-    const moveMemberBetweenTeams = (sourceTeamId, targetTeamId, memberId) => {
-      if (sourceTeamId === targetTeamId) return;
-      updateTeams((teams) => {
-        const sourceTeam = teams.find((t2) => t2.id === sourceTeamId);
-        const member = sourceTeam?.members.find((m) => m.id === memberId);
-        if (!member) return teams;
-        return teams.map((t2) => {
-          if (t2.id === sourceTeamId) return { ...t2, members: t2.members.filter((m) => m.id !== memberId) };
-          if (t2.id === targetTeamId) return { ...t2, members: [...t2.members, member] };
-          return t2;
-        });
+    const sameLocation = (a, b) => {
+      if (!a || !b || a.kind !== b.kind) return false;
+      return a.kind === "team" ? a.id === b.id : true;
+    };
+    const moveMember = (source, target, memberId) => {
+      if (sameLocation(source, target)) return;
+      setOrg((prev) => {
+        const factoryData = prev[factory];
+        let member;
+        if (source.kind === "team") member = factoryData.teams.find((t2) => t2.id === source.id)?.members.find((m) => m.id === memberId);
+        else if (source.kind === "middleCard") member = factoryData.middleCard?.members.find((m) => m.id === memberId);
+        else if (source.kind === "qcStaff") member = (factoryData.qcMembers || []).find((m) => m.id === memberId);
+        else if (source.kind === "unassigned") member = (factoryData.unassigned || []).find((m) => m.id === memberId);
+        if (!member) return prev;
+        const { dept, ...stripped } = member;
+        const placed = target.kind === "qcStaff" ? member : stripped;
+        const next = { ...factoryData };
+        if (source.kind === "team") next.teams = next.teams.map((t2) => t2.id === source.id ? { ...t2, members: t2.members.filter((m) => m.id !== memberId) } : t2);
+        else if (source.kind === "middleCard") next.middleCard = { ...next.middleCard, members: next.middleCard.members.filter((m) => m.id !== memberId) };
+        else if (source.kind === "qcStaff") next.qcMembers = (next.qcMembers || []).filter((m) => m.id !== memberId);
+        else if (source.kind === "unassigned") next.unassigned = (next.unassigned || []).filter((m) => m.id !== memberId);
+        if (target.kind === "team") next.teams = next.teams.map((t2) => t2.id === target.id ? { ...t2, members: [...t2.members, placed] } : t2);
+        else if (target.kind === "middleCard") next.middleCard = { ...next.middleCard || newMiddleCard(), members: [...next.middleCard?.members || [], placed] };
+        else if (target.kind === "qcStaff") next.qcMembers = [...next.qcMembers || [], placed];
+        return { ...prev, [factory]: next };
       });
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
+      (data.unassigned || []).length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        "div",
+        {
+          style: {
+            width: "100%",
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 10,
+            border: `1px dashed ${COLORS.borderStrong}`,
+            background: "#FAFAF7",
+            boxSizing: "border-box"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, fontWeight: 500, color: COLORS.textSecondary, marginBottom: 8 }, children: t(lang, "unassignedPoolTitle", data.unassigned.length) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 }, children: data.unassigned.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                draggable: isEditing,
+                onDragStart: () => setDraggedMemberInfo({ memberId: m.id, source: { kind: "unassigned" } }),
+                onDragEnd: () => setDraggedMemberInfo(null),
+                title: isEditing ? t(lang, "dragUnassignedTitle") : void 0,
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 10px 5px 5px",
+                  borderRadius: 999,
+                  border: `0.5px solid ${COLORS.border}`,
+                  background: COLORS.card,
+                  cursor: isEditing ? "grab" : "default"
+                },
+                children: [
+                  m.photo ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: m.photo, alt: "", style: { width: 22, height: 22, borderRadius: "50%", objectFit: "cover", display: "block" } }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 22, height: 22, borderRadius: "50%", background: COLORS.page } }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, fontWeight: 500, color: COLORS.textPrimary }, children: m.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 11, color: COLORS.textMuted }, children: orgPositionLabel(m.position) }),
+                  m.dept && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 11, color: COLORS.textMuted }, children: [
+                    "\xB7 ",
+                    trTeamTitle(m.dept, lang)
+                  ] })
+                ]
+              },
+              m.id
+            )) })
+          ]
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [
         data.heads.map((h, idx) => {
           const tc = tierColorsOf("\uBD80\uC11C\uC7A5");
@@ -35193,6 +35387,13 @@
             if (confirm(t(lang, "confirmDeleteMember"))) {
               updateMiddleCard((mc) => ({ ...mc, members: mc.members.filter((m) => m.id !== memberId) }));
             }
+          },
+          onMemberDragStart: (memberId) => setDraggedMemberInfo({ memberId, source: { kind: "middleCard" } }),
+          onMemberDragEnd: () => setDraggedMemberInfo(null),
+          isMemberDropTarget: !!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "middleCard" }),
+          onMemberDrop: () => {
+            if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "middleCard" }, draggedMemberInfo.memberId);
+            setDraggedMemberInfo(null);
           }
         }
       ) }),
@@ -35247,11 +35448,11 @@
                 );
               }
             },
-            onMemberDragStart: (memberId) => setDraggedMemberInfo({ memberId, sourceTeamId: team.id }),
+            onMemberDragStart: (memberId) => setDraggedMemberInfo({ memberId, source: { kind: "team", id: team.id } }),
             onMemberDragEnd: () => setDraggedMemberInfo(null),
-            isMemberDropTarget: !!draggedMemberInfo && draggedMemberInfo.sourceTeamId !== team.id,
+            isMemberDropTarget: !!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "team", id: team.id }),
             onMemberDrop: () => {
-              if (draggedMemberInfo) moveMemberBetweenTeams(draggedMemberInfo.sourceTeamId, team.id, draggedMemberInfo.memberId);
+              if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "team", id: team.id }, draggedMemberInfo.memberId);
               setDraggedMemberInfo(null);
             }
           },
@@ -35272,6 +35473,13 @@
               if (confirm(t(lang, "confirmDeleteMember"))) {
                 updateQcMembers((members) => members.filter((m) => m.id !== memberId));
               }
+            },
+            onMemberDragStart: (memberId) => setDraggedMemberInfo({ memberId, source: { kind: "qcStaff" } }),
+            onMemberDragEnd: () => setDraggedMemberInfo(null),
+            isMemberDropTarget: !!draggedMemberInfo && !sameLocation(draggedMemberInfo.source, { kind: "qcStaff" }),
+            onMemberDrop: () => {
+              if (draggedMemberInfo) moveMember(draggedMemberInfo.source, { kind: "qcStaff" }, draggedMemberInfo.memberId);
+              setDraggedMemberInfo(null);
             }
           },
           "qc-staff-card"
@@ -35430,6 +35638,9 @@
             if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
           });
         }
+        (d.unassigned || []).forEach((m) => {
+          if (m.empNo) existingEmpNos.add(String(m.empNo).trim().toUpperCase());
+        });
       });
       const seenInFile = /* @__PURE__ */ new Set();
       const allParsed = [];
@@ -35672,6 +35883,7 @@
     const [dragRowId, setDragRowId] = (0, import_react.useState)(null);
     const [overRowId, setOverRowId] = (0, import_react.useState)(null);
     const [showUpload, setShowUpload] = (0, import_react.useState)(false);
+    const [addingListRow, setAddingListRow] = (0, import_react.useState)(false);
     const importFileRef = (0, import_react.useRef)(null);
     const isRemoteApplyRef = (0, import_react.useRef)(false);
     const orgUpdatedAtRef = (0, import_react.useRef)(0);
@@ -35803,6 +36015,7 @@
         if (d.middleCard) {
           d.middleCard.members.forEach((m) => list.push({ ...m, team: d.middleCard.title, isMiddleCard: true }));
         }
+        (d.unassigned || []).forEach((m) => list.push({ ...m, team: m.dept || "", isUnassigned: true }));
       });
       return list;
     }, [org]);
@@ -35907,6 +36120,15 @@
             }
           };
         }
+        if (entry.isUnassigned) {
+          return {
+            ...prev,
+            [entry.factory]: {
+              ...factoryData,
+              unassigned: (factoryData.unassigned || []).map((m) => m.id === entry.id ? { ...m, ...data } : m)
+            }
+          };
+        }
         return {
           ...prev,
           [entry.factory]: {
@@ -35939,6 +36161,12 @@
             }
           };
         }
+        if (entry.isUnassigned) {
+          return {
+            ...prev,
+            [entry.factory]: { ...factoryData, unassigned: (factoryData.unassigned || []).filter((m) => m.id !== entry.id) }
+          };
+        }
         return {
           ...prev,
           [entry.factory]: {
@@ -35961,7 +36189,8 @@
             heads: factoryData.heads.filter((h) => !idSet.has(h.id)),
             teams: factoryData.teams.map((tm) => ({ ...tm, members: tm.members.filter((m) => !idSet.has(m.id)) })),
             qcMembers: (factoryData.qcMembers || []).filter((m) => !idSet.has(m.id)),
-            middleCard: factoryData.middleCard ? { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => !idSet.has(m.id)) } : factoryData.middleCard
+            middleCard: factoryData.middleCard ? { ...factoryData.middleCard, members: factoryData.middleCard.members.filter((m) => !idSet.has(m.id)) } : factoryData.middleCard,
+            unassigned: (factoryData.unassigned || []).filter((m) => !idSet.has(m.id))
           };
         });
         return next;
@@ -35976,13 +36205,24 @@
             heads: [],
             teams: prev[f].teams.map((tm) => ({ ...tm, members: [] })),
             qcMembers: [],
-            middleCard: prev[f].middleCard ? { ...prev[f].middleCard, members: [] } : prev[f].middleCard
+            middleCard: prev[f].middleCard ? { ...prev[f].middleCard, members: [] } : prev[f].middleCard,
+            unassigned: []
           };
         });
         return next;
       });
       setSelectedListIds(/* @__PURE__ */ new Set());
       setEditingListId(null);
+    };
+    const handleAddListRow = (data) => {
+      setOrg((prev) => ({
+        ...prev,
+        1: {
+          ...prev[1],
+          unassigned: [...prev[1].unassigned || [], { id: nextId(), ...data, status: "\uCD9C\uADFC", factory: 1 }]
+        }
+      }));
+      setAddingListRow(false);
     };
     const FactoryBtn = ({ value, label }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "button",
@@ -36199,6 +36439,34 @@
                 {
                   onClick: () => {
                     if (listLocked) return;
+                    setEditingListId(null);
+                    setAddingListRow((v) => !v);
+                  },
+                  disabled: listLocked,
+                  title: listLocked ? t(lang, "editDoneDisabledTitle") : void 0,
+                  style: {
+                    height: 30,
+                    padding: "0 12px",
+                    borderRadius: 6,
+                    border: `0.5px solid ${addingListRow ? COLORS.headDark : COLORS.borderStrong}`,
+                    background: addingListRow ? COLORS.headDark : COLORS.card,
+                    color: addingListRow ? "#fff" : COLORS.textPrimary,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: listLocked ? "not-allowed" : "pointer",
+                    opacity: listLocked ? 0.65 : 1
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginRight: 4 }, "aria-hidden": "true", children: "+" }),
+                    t(lang, "addListRow")
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  onClick: () => {
+                    if (listLocked) return;
                     if (listEditing) setSelectedListIds(/* @__PURE__ */ new Set());
                     setListEditing((v) => !v);
                   },
@@ -36346,6 +36614,7 @@
               )
             ] })
           ] }),
+          addingListRow && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AddListRowForm, { onCancel: () => setAddingListRow(false), onSave: handleAddListRow }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: 12 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textMuted, marginBottom: listSummary.parts.length > 0 ? 6 : 0 }, children: t(lang, "totalCount", listSummary.total) }),
             listSummary.parts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 }, children: listSummary.parts.map((p) => {
@@ -36537,7 +36806,24 @@
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.empNo }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { minWidth: 0 }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: e.name }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: COLORS.textMuted }, children: teamLabel })
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 11, color: COLORS.textMuted, display: "flex", alignItems: "center", gap: 5 }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: teamLabel }),
+                        e.isUnassigned && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "span",
+                          {
+                            style: {
+                              fontSize: 10,
+                              fontWeight: 500,
+                              padding: "1px 6px",
+                              borderRadius: 999,
+                              color: COLORS.warning,
+                              background: COLORS.warningBg,
+                              border: `0.5px solid ${COLORS.warning}`
+                            },
+                            children: t(lang, "unassignedBadge")
+                          }
+                        )
+                      ] })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.position }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: t(lang, "factoryLabel", e.factory) }),
