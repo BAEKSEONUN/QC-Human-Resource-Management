@@ -26,21 +26,24 @@ const COLORS = {
 
 const STATUS_META = {
   출근: { color: COLORS.success, bg: COLORS.successBg, icon: "●" },
-  결근: { color: COLORS.danger, bg: COLORS.dangerBg, icon: "✕" },
+  연차: { color: COLORS.teal, bg: COLORS.tealBg, icon: "◆" },
   병가: { color: COLORS.warning, bg: COLORS.warningBg, icon: "＋" },
+  무단결근: { color: COLORS.danger, bg: COLORS.dangerBg, icon: "✕" },
   출산휴가: { color: COLORS.info, bg: COLORS.infoBg, icon: "◐" },
 };
+// 명단에서 상태를 선택할 때 보여주는 순서 (출근 포함 전체)
+const STATUS_OPTIONS = ["출근", "연차", "병가", "무단결근", "출산휴가"];
 
-// 상태값(출근/결근/병가/출산휴가)은 데이터 키로 계속 한국어를 쓰고,
+// 상태값(출근/연차/병가/무단결근/출산휴가)은 데이터 키로 계속 한국어를 쓰고,
 // 화면에 보여줄 때만 언어에 맞게 바꿔서 표시한다.
 const STATUS_LABEL = {
-  ko: { 출근: "출근", 결근: "결근", 병가: "병가", 출산휴가: "출산휴가" },
-  vi: { 출근: "Đi làm", 결근: "Vắng mặt", 병가: "Nghỉ ốm", 출산휴가: "Nghỉ thai sản" },
+  ko: { 출근: "출근", 연차: "연차", 병가: "병가", 무단결근: "무단결근", 출산휴가: "출산휴가" },
+  vi: { 출근: "Đi làm", 연차: "Nghỉ phép năm", 병가: "Nghỉ ốm", 무단결근: "Vắng không phép", 출산휴가: "Nghỉ thai sản" },
 };
 const trStatus = (status, lang) => (STATUS_LABEL[lang] && STATUS_LABEL[lang][status]) || status;
 
 // 결근성 상태(출근 제외)를 대시보드에서 같은 항목끼리 묶어 보여주기 위한 순서
-const ABSENCE_ORDER = ["결근", "병가", "출산휴가"];
+const ABSENCE_ORDER = ["연차", "병가", "무단결근", "출산휴가"];
 
 // ---------- 부서 / 직급 기준 ----------
 // 품질부서 산하 팀 (정렬 시 이 순서를 기준으로 그룹핑됨). PQC는 UNIT/ASSY로 분리.
@@ -150,7 +153,6 @@ const DICT = {
   colFactory: { ko: "공장", vi: "Nhà máy" },
   colNote: { ko: "비고", vi: "Ghi chú" },
   colStatus: { ko: "오늘 상태", vi: "Trạng thái hôm nay" },
-  noteAbsent: { ko: "무단결근", vi: "Vắng không phép" },
   headTeamLabel: { ko: "부서장", vi: "Trưởng phòng" },
   teamOverall: { ko: "현지총괄관리자", vi: "Tổng quản lý tại chỗ" },
   uploadExcel: { ko: "엑셀 업로드", vi: "Tải lên Excel" },
@@ -268,7 +270,7 @@ const initialOrg = {
       {
         title: "OQC",
         members: [
-          { empNo: "Q1031", name: "박준호", position: "Supervisor 2", status: "결근" },
+          { empNo: "Q1031", name: "박준호", position: "Supervisor 2", status: "무단결근" },
           { empNo: "Q1032", name: "최유진", position: "Inspector", status: "출근" },
         ],
       },
@@ -1012,6 +1014,7 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
           드래그 정렬 자체는 수정 모드와 무관하게 항상 가능하다. */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         {data.heads.map((h, idx) => {
+          const tc = tierColorsOf("부서장");
           return editingHeadId === h.id ? (
             <div key={h.id} style={{ width: 260, maxWidth: "100%", marginTop: idx === 0 ? 0 : 10 }}>
               <MemberForm
@@ -1052,21 +1055,24 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 10px",
-                    borderRadius: 8,
-                    background: COLORS.headDark,
-                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.headDark}`,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    background: COLORS.card,
+                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderLeft: `3px solid ${tc.color}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1,
                   }}
                 >
-                  <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12, flexShrink: 0, color: "#fff" }}>
+                  <span aria-hidden="true" style={{ opacity: 0.5, fontSize: 12, flexShrink: 0 }}>
                     ⠿
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{trHeadPosition(h.position, lang)}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{h.name}</div>
+                    <div style={{ fontSize: 11, color: "#000000" }}>{trHeadPosition(h.position, lang)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }}>{h.name}</div>
                   </div>
                 </div>
                 {isEditing && data.heads.length > 1 && (
@@ -1137,6 +1143,21 @@ function OrgChart({ factory, data, isEditing, setOrg, onDirtyChange }) {
             </>
           ))}
       </div>
+
+      {/* 부서장 카드 스택과 팀 카드 행 사이의 빈 카드 틀. 이름/데이터 없이
+          자리만 차지하는 고정 플레이스홀더다. */}
+      <div style={{ width: 1, height: 14, background: COLORS.borderStrong }} />
+      <div
+        style={{
+          width: 260,
+          maxWidth: "100%",
+          minHeight: 54,
+          borderRadius: 8,
+          border: `0.5px solid ${COLORS.border}`,
+          background: COLORS.card,
+          boxSizing: "border-box",
+        }}
+      />
 
       <div style={{ width: 1, height: 18, background: COLORS.borderStrong }} />
       <div style={{ width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page }} />
@@ -1811,14 +1832,14 @@ export default function QualityPortal() {
   );
 
   const counts = useMemo(() => {
-    const c = { 출근: 0, 결근: 0, 병가: 0, 출산휴가: 0 };
+    const c = { 출근: 0, 연차: 0, 병가: 0, 무단결근: 0, 출산휴가: 0 };
     scoped.forEach((e) => {
       c[e.status] = (c[e.status] || 0) + 1;
     });
     return c;
   }, [scoped]);
 
-  // 병가/결근/출산휴가 등 결근성 항목끼리 묶어서 보여준다 (같은 상태끼리 정렬)
+  // 연차/병가/무단결근/출산휴가 등 결근성 항목끼리 묶어서 보여준다 (같은 상태끼리 정렬)
   const notices = useMemo(() => {
     return scoped
       .filter((e) => e.status !== "출근")
@@ -2059,8 +2080,8 @@ export default function QualityPortal() {
           {/* 대시보드 */}
           {tab === "dashboard" && (
             <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 12, marginBottom: 18 }}>
-                {["출근", "결근", "병가", "출산휴가"].map((s) => {
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 18 }}>
+                {STATUS_OPTIONS.map((s) => {
                   const meta = STATUS_META[s];
                   return (
                     <div key={s} style={{ background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "14px 16px" }}>
@@ -2084,7 +2105,7 @@ export default function QualityPortal() {
                       const meta = STATUS_META[e.status];
                       const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
                       let detail = `${t(lang, "factoryLabel", e.factory)} · ${teamLabel}`;
-                      if (e.status === "병가" && e.note) detail += ` · ${t(lang, "reasonPrefix")}: ${e.note}`;
+                      if (e.status !== "출산휴가" && e.note) detail += ` · ${t(lang, "reasonPrefix")}: ${e.note}`;
                       if (e.status === "출산휴가" && e.returnDate) detail += ` · ${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
                       return (
                         <div
@@ -2127,7 +2148,7 @@ export default function QualityPortal() {
             <div style={{ background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 18px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["전체", "출근", "결근", "병가", "출산휴가"].map((s) => (
+                  {["전체", ...STATUS_OPTIONS].map((s) => (
                     <button
                       key={s}
                       onClick={() => setStatusFilter(s)}
@@ -2281,9 +2302,8 @@ export default function QualityPortal() {
 
                   const meta = STATUS_META[e.status];
                   let note = "-";
-                  if (e.status === "병가" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
+                  if (e.status !== "출근" && e.status !== "출산휴가" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
                   if (e.status === "출산휴가" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
-                  if (e.status === "결근") note = t(lang, "noteAbsent");
                   const teamLabel = e.team === "부서장" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
                   const canDelete = !e.isHead || e.headCountInFactory > 1;
                   return (
@@ -2318,7 +2338,27 @@ export default function QualityPortal() {
                       <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{t(lang, "factoryLabel", e.factory)}</span>
                       <span style={{ fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</span>
                       <div style={{ textAlign: "right" }}>
-                        <Badge status={e.status} />
+                        <select
+                          value={e.status}
+                          onChange={(ev) => updateListEntry(e, { status: ev.target.value })}
+                          title={t(lang, "colStatus")}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            border: `0.5px solid ${meta.color}`,
+                            background: meta.bg,
+                            color: meta.color,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {trStatus(s, lang)}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       {listEditing && (
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>

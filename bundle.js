@@ -34107,16 +34107,18 @@
   };
   var STATUS_META = {
     \uCD9C\uADFC: { color: COLORS.success, bg: COLORS.successBg, icon: "\u25CF" },
-    \uACB0\uADFC: { color: COLORS.danger, bg: COLORS.dangerBg, icon: "\u2715" },
+    \uC5F0\uCC28: { color: COLORS.teal, bg: COLORS.tealBg, icon: "\u25C6" },
     \uBCD1\uAC00: { color: COLORS.warning, bg: COLORS.warningBg, icon: "\uFF0B" },
+    \uBB34\uB2E8\uACB0\uADFC: { color: COLORS.danger, bg: COLORS.dangerBg, icon: "\u2715" },
     \uCD9C\uC0B0\uD734\uAC00: { color: COLORS.info, bg: COLORS.infoBg, icon: "\u25D0" }
   };
+  var STATUS_OPTIONS = ["\uCD9C\uADFC", "\uC5F0\uCC28", "\uBCD1\uAC00", "\uBB34\uB2E8\uACB0\uADFC", "\uCD9C\uC0B0\uD734\uAC00"];
   var STATUS_LABEL = {
-    ko: { \uCD9C\uADFC: "\uCD9C\uADFC", \uACB0\uADFC: "\uACB0\uADFC", \uBCD1\uAC00: "\uBCD1\uAC00", \uCD9C\uC0B0\uD734\uAC00: "\uCD9C\uC0B0\uD734\uAC00" },
-    vi: { \uCD9C\uADFC: "\u0110i l\xE0m", \uACB0\uADFC: "V\u1EAFng m\u1EB7t", \uBCD1\uAC00: "Ngh\u1EC9 \u1ED1m", \uCD9C\uC0B0\uD734\uAC00: "Ngh\u1EC9 thai s\u1EA3n" }
+    ko: { \uCD9C\uADFC: "\uCD9C\uADFC", \uC5F0\uCC28: "\uC5F0\uCC28", \uBCD1\uAC00: "\uBCD1\uAC00", \uBB34\uB2E8\uACB0\uADFC: "\uBB34\uB2E8\uACB0\uADFC", \uCD9C\uC0B0\uD734\uAC00: "\uCD9C\uC0B0\uD734\uAC00" },
+    vi: { \uCD9C\uADFC: "\u0110i l\xE0m", \uC5F0\uCC28: "Ngh\u1EC9 ph\xE9p n\u0103m", \uBCD1\uAC00: "Ngh\u1EC9 \u1ED1m", \uBB34\uB2E8\uACB0\uADFC: "V\u1EAFng kh\xF4ng ph\xE9p", \uCD9C\uC0B0\uD734\uAC00: "Ngh\u1EC9 thai s\u1EA3n" }
   };
   var trStatus = (status, lang) => STATUS_LABEL[lang] && STATUS_LABEL[lang][status] || status;
-  var ABSENCE_ORDER = ["\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"];
+  var ABSENCE_ORDER = ["\uC5F0\uCC28", "\uBCD1\uAC00", "\uBB34\uB2E8\uACB0\uADFC", "\uCD9C\uC0B0\uD734\uAC00"];
   var DEPARTMENTS = ["\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", "QC", "IQC", "PQC UNIT", "PQC ASSY", "OQC", "RMA"];
   var DEPT_ORDER = ["\uBD80\uC11C\uC7A5", ...DEPARTMENTS];
   var POSITIONS = ["Inspector", "Staff", "Supervisor 1", "Supervisor 2", "Manager", "Upper Manager"];
@@ -34206,7 +34208,6 @@
     colFactory: { ko: "\uACF5\uC7A5", vi: "Nh\xE0 m\xE1y" },
     colNote: { ko: "\uBE44\uACE0", vi: "Ghi ch\xFA" },
     colStatus: { ko: "\uC624\uB298 \uC0C1\uD0DC", vi: "Tr\u1EA1ng th\xE1i h\xF4m nay" },
-    noteAbsent: { ko: "\uBB34\uB2E8\uACB0\uADFC", vi: "V\u1EAFng kh\xF4ng ph\xE9p" },
     headTeamLabel: { ko: "\uBD80\uC11C\uC7A5", vi: "Tr\u01B0\u1EDFng ph\xF2ng" },
     teamOverall: { ko: "\uD604\uC9C0\uCD1D\uAD04\uAD00\uB9AC\uC790", vi: "T\u1ED5ng qu\u1EA3n l\xFD t\u1EA1i ch\u1ED7" },
     uploadExcel: { ko: "\uC5D1\uC140 \uC5C5\uB85C\uB4DC", vi: "T\u1EA3i l\xEAn Excel" },
@@ -34309,7 +34310,7 @@
         {
           title: "OQC",
           members: [
-            { empNo: "Q1031", name: "\uBC15\uC900\uD638", position: "Supervisor 2", status: "\uACB0\uADFC" },
+            { empNo: "Q1031", name: "\uBC15\uC900\uD638", position: "Supervisor 2", status: "\uBB34\uB2E8\uACB0\uADFC" },
             { empNo: "Q1032", name: "\uCD5C\uC720\uC9C4", position: "Inspector", status: "\uCD9C\uADFC" }
           ]
         },
@@ -34974,6 +34975,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px 4px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [
         data.heads.map((h, idx) => {
+          const tc = tierColorsOf("\uBD80\uC11C\uC7A5");
           return editingHeadId === h.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 260, maxWidth: "100%", marginTop: idx === 0 ? 0 : 10 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             MemberForm,
             {
@@ -35014,19 +35016,22 @@
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 10px",
-                    borderRadius: 8,
-                    background: COLORS.headDark,
-                    border: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.headDark}`,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    background: COLORS.card,
+                    borderTop: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderRight: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderBottom: `0.5px solid ${headOverIndex === idx && headDragIndex !== idx ? COLORS.teal : COLORS.border}`,
+                    borderLeft: `3px solid ${tc.color}`,
                     boxSizing: "border-box",
                     cursor: isEditing ? "pointer" : "grab",
                     opacity: headOverIndex === idx && headDragIndex !== idx ? 0.7 : 1
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.6, fontSize: 12, flexShrink: 0, color: "#fff" }, children: "\u283F" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", style: { opacity: 0.5, fontSize: 12, flexShrink: 0 }, children: "\u283F" }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "rgba(255,255,255,0.7)" }, children: trHeadPosition(h.position, lang) }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: "#fff" }, children: h.name })
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 11, color: "#000000" }, children: trHeadPosition(h.position, lang) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, fontWeight: 500, color: COLORS.textPrimary }, children: h.name })
                     ] })
                   ]
                 }
@@ -35097,6 +35102,21 @@
           )
         ] }))
       ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 14, background: COLORS.borderStrong } }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "div",
+        {
+          style: {
+            width: 260,
+            maxWidth: "100%",
+            minHeight: 54,
+            borderRadius: 8,
+            border: `0.5px solid ${COLORS.border}`,
+            background: COLORS.card,
+            boxSizing: "border-box"
+          }
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 1, height: 18, background: COLORS.borderStrong } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${COLORS.borderStrong}`, background: COLORS.page } }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", borderTop: `2px solid ${COLORS.borderStrong}`, marginTop: 0 } }),
@@ -35657,7 +35677,7 @@
       [allEmployees, factory]
     );
     const counts = (0, import_react.useMemo)(() => {
-      const c = { \uCD9C\uADFC: 0, \uACB0\uADFC: 0, \uBCD1\uAC00: 0, \uCD9C\uC0B0\uD734\uAC00: 0 };
+      const c = { \uCD9C\uADFC: 0, \uC5F0\uCC28: 0, \uBCD1\uAC00: 0, \uBB34\uB2E8\uACB0\uADFC: 0, \uCD9C\uC0B0\uD734\uAC00: 0 };
       scoped.forEach((e) => {
         c[e.status] = (c[e.status] || 0) + 1;
       });
@@ -35865,7 +35885,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabBtn, { value: "list", label: t(lang, "tabList"), icon: "\u2261" })
         ] }),
         tab === "dashboard" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 12, marginBottom: 18 }, children: ["\uCD9C\uADFC", "\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"].map((s) => {
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 18 }, children: STATUS_OPTIONS.map((s) => {
             const meta = STATUS_META[s];
             return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "14px 16px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textSecondary }, children: trStatus(s, lang) }),
@@ -35881,7 +35901,7 @@
               const meta = STATUS_META[e.status];
               const teamLabel = e.team === "\uBD80\uC11C\uC7A5" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
               let detail = `${t(lang, "factoryLabel", e.factory)} \xB7 ${teamLabel}`;
-              if (e.status === "\uBCD1\uAC00" && e.note) detail += ` \xB7 ${t(lang, "reasonPrefix")}: ${e.note}`;
+              if (e.status !== "\uCD9C\uC0B0\uD734\uAC00" && e.note) detail += ` \xB7 ${t(lang, "reasonPrefix")}: ${e.note}`;
               if (e.status === "\uCD9C\uC0B0\uD734\uAC00" && e.returnDate) detail += ` \xB7 ${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
               return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                 "div",
@@ -35911,7 +35931,7 @@
         tab === "org" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 28 }, children: (factory === "all" ? [1, 2] : [factory]).map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FactoryOrgPanel, { factory: f, data: org[f], setOrg }, f)) }),
         tab === "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: COLORS.card, border: `0.5px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 18px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" }, children: ["\uC804\uCCB4", "\uCD9C\uADFC", "\uACB0\uADFC", "\uBCD1\uAC00", "\uCD9C\uC0B0\uD734\uAC00"].map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" }, children: ["\uC804\uCCB4", ...STATUS_OPTIONS].map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "button",
               {
                 onClick: () => setStatusFilter(s),
@@ -36075,9 +36095,8 @@
               }
               const meta = STATUS_META[e.status];
               let note = "-";
-              if (e.status === "\uBCD1\uAC00" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
+              if (e.status !== "\uCD9C\uADFC" && e.status !== "\uCD9C\uC0B0\uD734\uAC00" && e.note) note = `${t(lang, "reasonPrefix")}: ${e.note}`;
               if (e.status === "\uCD9C\uC0B0\uD734\uAC00" && e.returnDate) note = `${t(lang, "returnDatePrefix")}: ${e.returnDate}`;
-              if (e.status === "\uACB0\uADFC") note = t(lang, "noteAbsent");
               const teamLabel = e.team === "\uBD80\uC11C\uC7A5" ? t(lang, "headTeamLabel") : trTeamTitle(e.team, lang);
               const canDelete = !e.isHead || e.headCountInFactory > 1;
               return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -36112,7 +36131,25 @@
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: e.position }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary }, children: t(lang, "factoryLabel", e.factory) }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: note }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, { status: e.status }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "select",
+                      {
+                        value: e.status,
+                        onChange: (ev) => updateListEntry(e, { status: ev.target.value }),
+                        title: t(lang, "colStatus"),
+                        style: {
+                          fontSize: 12,
+                          fontWeight: 500,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          border: `0.5px solid ${meta.color}`,
+                          background: meta.bg,
+                          color: meta.color,
+                          cursor: "pointer"
+                        },
+                        children: STATUS_OPTIONS.map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: s, children: trStatus(s, lang) }, s))
+                      }
+                    ) }),
                     listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, justifyContent: "flex-end" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: t(lang, "memberEditTitle"), onClick: () => setEditingListId(e.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
                       canDelete && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
