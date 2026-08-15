@@ -8635,13 +8635,19 @@
       });
       const groupOrder = ["Staff", ...DEPARTMENTS];
       const parts = [];
-      if (managerCount > 0) parts.push({ label: t(lang, "managerLabel"), count: managerCount });
+      if (managerCount > 0) parts.push({ label: t(lang, "managerLabel"), count: managerCount, kind: "manager" });
       [...byGroup.entries()].sort((a, b) => {
         const ia = groupOrder.indexOf(a[0]);
         const ib = groupOrder.indexOf(b[0]);
         return (ia === -1 ? groupOrder.length : ia) - (ib === -1 ? groupOrder.length : ib);
       }).forEach(([team, count]) => {
-        if (count > 0) parts.push({ label: team === "Staff" ? "Staff" : trTeamTitle(team, lang), count });
+        if (count > 0) {
+          parts.push({
+            label: team === "Staff" ? "Staff" : trTeamTitle(team, lang),
+            count,
+            kind: team === "Staff" ? "staff" : "dept"
+          });
+        }
       });
       return { total: nonHead.length, parts };
     }, [filteredList, lang]);
@@ -9003,9 +9009,32 @@
             )
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t(lang, "totalCount", listSummary.total) }),
-          listSummary.parts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: COLORS.textMuted }, children: listSummary.parts.map((p) => `${p.label} ${p.count}${t(lang, "personSuffix")}`).join(" / ") })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: 12 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textMuted, marginBottom: listSummary.parts.length > 0 ? 6 : 0 }, children: t(lang, "totalCount", listSummary.total) }),
+          listSummary.parts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 }, children: listSummary.parts.map((p) => {
+            const tc = p.kind === "manager" ? tierColorsOf("Supervisor") : p.kind === "staff" ? tierColorsOf("Staff") : tierColorsOf("Inspector");
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "span",
+              {
+                style: {
+                  fontSize: 12,
+                  fontWeight: 500,
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  background: tc.bg,
+                  color: tc.color,
+                  border: `0.5px solid ${tc.border}`
+                },
+                children: [
+                  p.label,
+                  " ",
+                  p.count,
+                  t(lang, "personSuffix")
+                ]
+              },
+              p.label
+            );
+          }) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 6 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -9220,7 +9249,7 @@
                       }
                     }
                   ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: note }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { textAlign: "right" }, children: listEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "select",
                     {
                       value: e.status,
@@ -9238,7 +9267,7 @@
                       },
                       children: STATUS_OPTIONS.map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: s, children: trStatus(s, lang) }, s))
                     }
-                  ) }),
+                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, { status: e.status }) }),
                   listEditing && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4, justifyContent: "flex-end" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IconBtn, { title: t(lang, "memberEditTitle"), onClick: () => setEditingListId(e.id), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: "\u270E" }) }),
                     canDelete && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(

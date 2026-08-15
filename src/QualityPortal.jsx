@@ -1573,7 +1573,7 @@ export default function QualityPortal() {
     });
     const groupOrder = ["Staff", ...DEPARTMENTS];
     const parts = [];
-    if (managerCount > 0) parts.push({ label: t(lang, "managerLabel"), count: managerCount });
+    if (managerCount > 0) parts.push({ label: t(lang, "managerLabel"), count: managerCount, kind: "manager" });
     [...byGroup.entries()]
       .sort((a, b) => {
         const ia = groupOrder.indexOf(a[0]);
@@ -1581,7 +1581,13 @@ export default function QualityPortal() {
         return (ia === -1 ? groupOrder.length : ia) - (ib === -1 ? groupOrder.length : ib);
       })
       .forEach(([team, count]) => {
-        if (count > 0) parts.push({ label: team === "Staff" ? "Staff" : trTeamTitle(team, lang), count });
+        if (count > 0) {
+          parts.push({
+            label: team === "Staff" ? "Staff" : trTeamTitle(team, lang),
+            count,
+            kind: team === "Staff" ? "staff" : "dept",
+          });
+        }
       });
     return { total: nonHead.length, parts };
   }, [filteredList, lang]);
@@ -1993,12 +1999,33 @@ export default function QualityPortal() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8, display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 6 }}>
-                <span>{t(lang, "totalCount", listSummary.total)}</span>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: listSummary.parts.length > 0 ? 6 : 0 }}>
+                  {t(lang, "totalCount", listSummary.total)}
+                </div>
                 {listSummary.parts.length > 0 && (
-                  <span style={{ color: COLORS.textMuted }}>
-                    {listSummary.parts.map((p) => `${p.label} ${p.count}${t(lang, "personSuffix")}`).join(" / ")}
-                  </span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {listSummary.parts.map((p) => {
+                      const tc =
+                        p.kind === "manager" ? tierColorsOf("Supervisor") : p.kind === "staff" ? tierColorsOf("Staff") : tierColorsOf("Inspector");
+                      return (
+                        <span
+                          key={p.label}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            padding: "4px 10px",
+                            borderRadius: 6,
+                            background: tc.bg,
+                            color: tc.color,
+                            border: `0.5px solid ${tc.border}`,
+                          }}
+                        >
+                          {p.label} {p.count}{t(lang, "personSuffix")}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
@@ -2217,27 +2244,31 @@ export default function QualityPortal() {
                         <span style={{ fontSize: 12, color: COLORS.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</span>
                       )}
                       <div style={{ textAlign: "right" }}>
-                        <select
-                          value={e.status}
-                          onChange={(ev) => updateListEntry(e, { status: ev.target.value })}
-                          title={t(lang, "colStatus")}
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 500,
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            border: `0.5px solid ${meta.color}`,
-                            background: meta.bg,
-                            color: meta.color,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                              {trStatus(s, lang)}
-                            </option>
-                          ))}
-                        </select>
+                        {listEditing ? (
+                          <select
+                            value={e.status}
+                            onChange={(ev) => updateListEntry(e, { status: ev.target.value })}
+                            title={t(lang, "colStatus")}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              border: `0.5px solid ${meta.color}`,
+                              background: meta.bg,
+                              color: meta.color,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s} value={s}>
+                                {trStatus(s, lang)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Badge status={e.status} />
+                        )}
                       </div>
                       {listEditing && (
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
